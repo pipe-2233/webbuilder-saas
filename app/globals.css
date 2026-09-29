@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/*
+ * Posición libre de las páginas (escritorio, contenedor de 48rem o más): el
+ * contenido llena la caja del elemento, así al agrandarlo desde el borde o la
+ * esquina también crece el botón, la imagen o el cuadro de texto. Los controles
+ * del editor (data-editor-ui) quedan fuera.
+ */
+@container (min-width: 48rem) {
+  [data-free-item] > :not([data-editor-ui]) {
+    width: 100%;
+  }
+  [data-free-sized] > :not([data-editor-ui]) {
+    height: 100%;
+  }
+  [data-free-sized] img {
+    height: 100%;
+    max-height: none;
+  }
+}

@@ -1,0 +1,306 @@
+"use client";
+
+import { AlignCenter, AlignLeft, AlignRight, MousePointerClick } from "lucide-react";
+import type { ReactNode } from "react";
+
+import type { EditorAction } from "@/lib/editor/reducer";
+import type { Path } from "@/lib/editor/set-in";
+import { createFeatureItem, createNavLink } from "@/lib/page-model/defaults";
+import type { ElementKey } from "@/lib/page-model/elements";
+import { SECTION_INFO } from "@/lib/page-model/section-info";
+import { LIMITS, TEXT_LIMITS, type Alignment, type NavLink, type PageTheme, type Section } from "@/lib/page-model/schema";
+
+import { ColorInput, LinkInput, PanelGroup, Segmented, TextInput } from "./fields";
+import { ElementInspector } from "./ElementInspector";
+import { ImageInput } from "./ImageInput";
+import { LayoutPanel } from "./LayoutPanel";
+import { ListEditor } from "./ListEditor";
+
+type SectionInspectorProps = {
+  section: Section | null;
+  /** Elemento seleccionado dentro de la sección: se muestra su panel en lugar del de la sección. */
+  selectedElement: ElementKey | null;
+  /** Todos los elementos seleccionados (Mayús/Ctrl + clic). */
+  selectedElements: ElementKey[];
+  theme: PageTheme;
+  device: "desktop" | "mobile";
+  dispatch: (action: EditorAction) => void;
+};
+
+const ALIGN_OPTIONS: { value: Alignment; label: string; icon: ReactNode }[] = [
+  { value: "left", label: "Izquierda", icon: <AlignLeft className="size-3.5" aria-hidden /> },
+  { value: "center", label: "Centro", icon: <AlignCenter className="size-3.5" aria-hidden /> },
+  { value: "right", label: "Derecha", icon: <AlignRight className="size-3.5" aria-hidden /> },
+];
+
+/** Panel "Editar": los campos de la sección seleccionada. */
+export function SectionInspector({
+  section,
+  selectedElement,
+  selectedElements,
+  theme,
+  device,
+  dispatch,
+}: SectionInspectorProps) {
+  if (!section) {
+    return (
+      <div className="flex flex-col items-center gap-2 px-4 py-10 text-center text-sm text-zinc-500">
+        <MousePointerClick className="size-6" aria-hidden />
+        Haz clic en una sección de la página para editarla.
+      </div>
+    );
+  }
+
+  if (selectedElement) {
+    return (
+      <ElementInspector
+        section={section}
+        elementKey={selectedElement}
+        selectedKeys={selectedElements.length > 0 ? selectedElements : [selectedElement]}
+        theme={theme}
+        device={device}
+        dispatch={dispatch}
+        onBack={() => dispatch({ type: "select", id: section.id })}
+      />
+    );
+  }
+
+  const set = (path: Path, value: unknown) =>
+    dispatch({ type: "updateSectionField", id: section.id, path, value });
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <h2 className="text-sm font-semibold">{SECTION_INFO[section.type].label}</h2>
+        <p className="text-xs text-zinc-500">
+          Consejo: también puedes hacer clic en cualquier texto de la página y escribir ahí mismo.
+        </p>
+      </div>
+
+      <SectionFields section={section} set={set} />
+
+      <LayoutPanel
+        section={section}
+        device={device}
+        dispatch={dispatch}
+        onSelectElement={(key) => dispatch({ type: "selectElement", id: section.id, key })}
+      />
+
+      <PanelGroup title="Fondo">
+        <ColorInput
+          label="Color de fondo de la sección"
+          value={section.background ?? theme.colors.background}
+          onChange={(color) => dispatch({ type: "setSectionBackground", id: section.id, color })}
+          hint={section.background ? undefined : "Ahora usa el color de fondo del sitio (pestaña Estilo)."}
+        />
+        {section.background && (
+          <button
+            type="button"
+            onClick={() => dispatch({ type: "setSectionBackground", id: section.id, color: undefined })}
+            className="self-start text-xs text-zinc-600 underline underline-offset-2 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+          >
+            Usar el fondo del sitio
+          </button>
+        )}
+      </PanelGroup>
+    </div>
+  );
+}
+
+function SectionFields({ section, set }: { section: Section; set: (path: Path, value: unknown) => void }) {
+  switch (section.type) {
+    case "header":
+      return (
+        <>
+          <PanelGroup title="Contenido">
+            <TextInput
+              label="Nombre o logo"
+              value={section.props.logoText}
+              onChange={(v) => set(["logoText"], v)}
+              maxLength={TEXT_LIMITS.logoText}
+              required
+            />
+          </PanelGroup>
+          <PanelGroup title="Menú">
+            <LinksEditor links={section.props.links} onChange={(links) => set(["links"], links)} />
+          </PanelGroup>
+        </>
+      );
+
+    case "hero":
+      return (
+        <>
+          <PanelGroup title="Contenido">
+            <TextInput
+              label="Título"
+              value={section.props.title}
+              onChange={(v) => set(["title"], v)}
+              maxLength={TEXT_LIMITS.heroTitle}
+              required
+            />
+            <TextInput
+              label="Subtítulo"
+              value={section.props.subtitle}
+              onChange={(v) => set(["subtitle"], v)}
+              maxLength={TEXT_LIMITS.heroSubtitle}
+              multiline
+            />
+          </PanelGroup>
+          <PanelGroup title="Botón">
+            <TextInput
+              label="Texto del botón"
+              value={section.props.buttonLabel}
+              onChange={(v) => set(["buttonLabel"], v)}
+              maxLength={TEXT_LIMITS.buttonLabel}
+              hint="Déjalo vacío para no mostrar botón."
+            />
+            <LinkInput
+              label="Al pulsar el botón, ir a"
+              value={section.props.buttonHref}
+              onChange={(v) => set(["buttonHref"], v)}
+              optional
+            />
+          </PanelGroup>
+          <PanelGroup title="Posición">
+            <Segmented
+              label="Alinear contenido y botón"
+              value={section.props.align}
+              options={ALIGN_OPTIONS}
+              onChange={(v) => set(["align"], v)}
+            />
+            <p className="text-xs text-zinc-500">
+              Con imagen: a la izquierda o derecha, la imagen se coloca al lado; en el centro, debajo.
+            </p>
+          </PanelGroup>
+          <PanelGroup title="Imagen">
+            <ImageInput label="Imagen de portada" value={section.props.imageUrl} onChange={(v) => set(["imageUrl"], v)} />
+          </PanelGroup>
+        </>
+      );
+
+    case "text":
+      return (
+        <PanelGroup title="Contenido">
+          <TextInput
+            label="Título"
+            value={section.props.title}
+            onChange={(v) => set(["title"], v)}
+            maxLength={TEXT_LIMITS.sectionTitle}
+          />
+          <TextInput
+            label="Texto"
+            value={section.props.body}
+            onChange={(v) => set(["body"], v)}
+            maxLength={TEXT_LIMITS.body}
+            multiline
+          />
+          <Segmented label="Alineación" value={section.props.align} options={ALIGN_OPTIONS} onChange={(v) => set(["align"], v)} />
+        </PanelGroup>
+      );
+
+    case "image":
+      return (
+        <PanelGroup title="Imagen">
+          <ImageInput label="Foto" value={section.props.src} onChange={(v) => set(["src"], v)} />
+          <TextInput
+            label="Descripción de la imagen"
+            value={section.props.alt}
+            onChange={(v) => set(["alt"], v)}
+            maxLength={TEXT_LIMITS.imageAlt}
+            hint="Para personas con discapacidad visual y buscadores. Ej.: «Taza de café sobre una mesa»."
+          />
+          <TextInput
+            label="Pie de foto"
+            value={section.props.caption}
+            onChange={(v) => set(["caption"], v)}
+            maxLength={TEXT_LIMITS.caption}
+          />
+        </PanelGroup>
+      );
+
+    case "features":
+      return (
+        <>
+          <PanelGroup title="Contenido">
+            <TextInput
+              label="Título"
+              value={section.props.title}
+              onChange={(v) => set(["title"], v)}
+              maxLength={TEXT_LIMITS.sectionTitle}
+            />
+          </PanelGroup>
+          <PanelGroup title="Elementos">
+            <ListEditor
+              items={section.props.items}
+              max={LIMITS.featureItems}
+              noun="característica"
+              create={createFeatureItem}
+              onChange={(items) => set(["items"], items)}
+              renderItem={(item, index) => (
+                <>
+                  <TextInput
+                    label="Título"
+                    value={item.title}
+                    onChange={(v) => set(["items", index, "title"], v)}
+                    maxLength={TEXT_LIMITS.featureTitle}
+                    required
+                  />
+                  <TextInput
+                    label="Descripción"
+                    value={item.description}
+                    onChange={(v) => set(["items", index, "description"], v)}
+                    maxLength={TEXT_LIMITS.featureDescription}
+                    multiline
+                  />
+                </>
+              )}
+            />
+          </PanelGroup>
+        </>
+      );
+
+    case "footer":
+      return (
+        <>
+          <PanelGroup title="Contenido">
+            <TextInput
+              label="Texto"
+              value={section.props.text}
+              onChange={(v) => set(["text"], v)}
+              maxLength={TEXT_LIMITS.footerText}
+            />
+          </PanelGroup>
+          <PanelGroup title="Enlaces">
+            <LinksEditor links={section.props.links} onChange={(links) => set(["links"], links)} />
+          </PanelGroup>
+        </>
+      );
+  }
+}
+
+function LinksEditor({ links, onChange }: { links: NavLink[]; onChange: (links: NavLink[]) => void }) {
+  const update = (index: number, patch: Partial<NavLink>) =>
+    onChange(links.map((link, i) => (i === index ? { ...link, ...patch } : link)));
+
+  return (
+    <ListEditor
+      items={links}
+      max={LIMITS.links}
+      noun="enlace"
+      create={createNavLink}
+      onChange={onChange}
+      renderItem={(link, index) => (
+        <>
+          <TextInput
+            label="Texto"
+            value={link.label}
+            onChange={(label) => update(index, { label })}
+            maxLength={TEXT_LIMITS.linkLabel}
+            required
+          />
+          <LinkInput label="Destino" value={link.href} onChange={(href) => update(index, { href })} />
+        </>
+      )}
+    />
+  );
+}
