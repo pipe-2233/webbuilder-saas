@@ -10,8 +10,10 @@ export function getSupabaseEnv() {
 
   if (!url || !publishableKey) {
     throw new Error(
-      "Faltan variables de entorno de Supabase. Define NEXT_PUBLIC_SUPABASE_URL y " +
-        "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY en .env.local (ver .env.example).",
+      "Faltan variables de entorno de Supabase: NEXT_PUBLIC_SUPABASE_URL y " +
+        "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY. En local, defínelas en .env.local " +
+        "(ver .env.example). En Netlify o Vercel, añádelas en la configuración de " +
+        "variables de entorno del sitio y vuelve a desplegar.",
     );
   }
 

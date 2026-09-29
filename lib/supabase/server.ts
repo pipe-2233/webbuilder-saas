@@ -12,8 +12,10 @@ import { getSupabaseEnv } from "./env";
  * Crea una instancia nueva por petición; no la guardes en una variable global.
  */
 export async function createClient() {
-  const { url, publishableKey } = getSupabaseEnv();
+  // Primero las cookies: así Next.js sabe desde el principio que la página
+  // depende de la petición (es dinámica) y no intenta generarla al compilar.
   const cookieStore = await cookies();
+  const { url, publishableKey } = getSupabaseEnv();
 
   return createServerClient<Database>(url, publishableKey, {
     cookies: {
@@ -27,7 +29,7 @@ export async function createClient() {
           );
         } catch {
           // Llamado desde un Server Component, donde no se pueden escribir cookies.
-          // Se resolverá con el proxy de sesión en la etapa de autenticación.
+          // No pasa nada: el proxy de sesión (proxy.ts) ya las renueva.
         }
       },
     },
