@@ -23,15 +23,23 @@ export type PageEditApi = {
   /** Vista previa del editor: en "mobile" no se usa la posición libre. */
   device: "desktop" | "mobile";
   setFreeLayout: (sectionId: string, free: FreeLayout) => void;
+  /** `group`: identifica un arrastre, para deshacerlo de una sola vez. */
   setFreePositions: (
     sectionId: string,
     positions: Partial<Record<ElementKey, FreePosition>>,
     minHeight: number,
+    group?: string,
   ) => void;
-  setFreeHeight: (sectionId: string, height: number) => void;
+  setFreeHeight: (sectionId: string, height: number, group?: string) => void;
+  /** Guías magnéticas visibles mientras se arrastra (null = ninguna). */
+  guides: SnapGuides | null;
+  setGuides: (guides: SnapGuides | null) => void;
   selectedShapeId: string | null;
   dispatch: React.Dispatch<import("@/lib/editor/reducer").EditorAction>;
 };
+
+/** Líneas de guía magnética de una sección (en píxeles, relativas a su contenido). */
+export type SnapGuides = { sectionId: string; x: number[]; y: number[] };
 
 export const PageEditContext = createContext<PageEditApi | null>(null);
 

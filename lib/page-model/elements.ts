@@ -12,9 +12,23 @@ export const SECTION_ELEMENTS = {
   hero: ["title", "subtitle", "button", "image"],
   text: ["title", "body"],
   image: ["image", "caption"],
-  features: ["title", "itemTitle", "itemDescription"],
+  features: ["title", "items", "itemTitle", "itemDescription"],
   footer: ["text", "links"],
 } as const satisfies Record<SectionType, readonly string[]>;
+
+/**
+ * Elementos que se colocan (orden en móvil y posición libre en escritorio).
+ * En características, los títulos y descripciones de cada tarjeta solo se
+ * personalizan; lo que se mueve es el grupo de tarjetas entero ("items").
+ */
+export const LAYOUT_ELEMENTS = {
+  header: ["logo", "links"],
+  hero: ["title", "subtitle", "button", "image"],
+  text: ["title", "body"],
+  image: ["image", "caption"],
+  features: ["title", "items"],
+  footer: ["text", "links"],
+} as const satisfies { [T in SectionType]: readonly (typeof SECTION_ELEMENTS)[T][number][] };
 
 export type ElementKey = (typeof SECTION_ELEMENTS)[SectionType][number];
 
@@ -30,17 +44,24 @@ export const ELEMENT_KEYS = [
   "itemTitle",
   "itemDescription",
   "text",
+  "items",
 ] as const satisfies readonly ElementKey[];
 
-/** Secciones cuyos elementos se pueden colocar libremente en escritorio. */
-export const FREE_LAYOUT_SECTIONS: readonly SectionType[] = ["hero", "text", "image"];
+/** Secciones cuyos elementos se pueden colocar libremente en escritorio (todas). */
+export const FREE_LAYOUT_SECTIONS: readonly SectionType[] = ["header", "hero", "text", "image", "features", "footer"];
 
 export function supportsFreeLayout(type: SectionType): boolean {
   return FREE_LAYOUT_SECTIONS.includes(type);
 }
 
+/** Elementos que se pueden seleccionar y personalizar. */
 export function elementsOf(type: SectionType): readonly ElementKey[] {
   return SECTION_ELEMENTS[type];
+}
+
+/** Elementos que se colocan: orden en móvil y posición libre en escritorio. */
+export function layoutElementsOf(type: SectionType): readonly ElementKey[] {
+  return LAYOUT_ELEMENTS[type];
 }
 
 export const ELEMENT_LABELS: Record<ElementKey, string> = {
@@ -55,14 +76,16 @@ export const ELEMENT_LABELS: Record<ElementKey, string> = {
   itemTitle: "Títulos de los elementos",
   itemDescription: "Descripciones de los elementos",
   text: "Texto",
+  items: "Tarjetas",
 };
 
 /** Qué tipo de controles de estilo admite cada elemento. */
-export type ElementKind = "text" | "button" | "image";
+export type ElementKind = "text" | "button" | "image" | "group";
 
 export function elementKind(key: ElementKey): ElementKind {
   if (key === "button") return "button";
   if (key === "image") return "image";
+  if (key === "items") return "group";
   return "text";
 }
 

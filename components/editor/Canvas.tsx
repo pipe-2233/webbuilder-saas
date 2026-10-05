@@ -2,9 +2,9 @@
 
 import { useDndContext, useDraggable, useDroppable } from "@dnd-kit/core";
 import { Move } from "lucide-react";
-import { useCallback, useMemo, type MouseEvent, type ReactNode, type RefObject } from "react";
+import { useCallback, useMemo, useState, type MouseEvent, type ReactNode, type RefObject } from "react";
 
-import { PageEditContext, type PageEditApi } from "@/components/page-renderer/edit-context";
+import { PageEditContext, type PageEditApi, type SnapGuides } from "@/components/page-renderer/edit-context";
 import { PageRenderer } from "@/components/page-renderer/PageRenderer";
 import { dragId } from "@/lib/editor/dnd";
 import type { EditorAction } from "@/lib/editor/reducer";
@@ -46,6 +46,8 @@ export function Canvas({
   pageRef,
 }: CanvasProps) {
   const { sections } = document;
+  // Guías magnéticas que se ven mientras se arrastra un elemento.
+  const [guides, setGuides] = useState<SnapGuides | null>(null);
 
   // Lo que el renderizador necesita para editar: textos, selección y posición libre.
   const editApi = useMemo<PageEditApi>(
@@ -59,11 +61,13 @@ export function Canvas({
       device,
       dispatch,
       setFreeLayout: (id, free) => dispatch({ type: "setFreeLayout", id, free }),
-      setFreePositions: (id, positions, minHeight) =>
-        dispatch({ type: "setFreePositions", id, positions, minHeight }),
-      setFreeHeight: (id, height) => dispatch({ type: "setFreeHeight", id, height }),
+      setFreePositions: (id, positions, minHeight, group) =>
+        dispatch({ type: "setFreePositions", id, positions, minHeight, group }),
+      setFreeHeight: (id, height, group) => dispatch({ type: "setFreeHeight", id, height, group }),
+      guides,
+      setGuides,
     }),
-    [dispatch, onSelectElement, selectedId, selectedElement, selectedElements, selectedShapeId, device],
+    [dispatch, onSelectElement, selectedId, selectedElement, selectedElements, selectedShapeId, device, guides],
   );
 
   const wrapSection = useCallback(

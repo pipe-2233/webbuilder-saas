@@ -1,5 +1,5 @@
-import { createSection } from "@/lib/page-model/defaults";
-import { elementsOf, supportsFreeLayout, type ElementKey } from "@/lib/page-model/elements";
+import { createSection, duplicateSection } from "@/lib/page-model/defaults";
+import { elementsOf, layoutElementsOf, supportsFreeLayout, type ElementKey } from "@/lib/page-model/elements";
 import {
   LIMITS,
   type ElementStyle,
@@ -36,10 +36,21 @@ export type EditorState = {
   revision: number;
   /** Última revisión guardada en la base de datos. */
   savedRevision: number;
+  /** Versiones anteriores del documento (deshacer), de la más antigua a la más reciente. */
+  past: PageDocument[];
+  /** Versiones deshechas (rehacer). */
+  future: PageDocument[];
+  /** Grupo del último cambio: los cambios seguidos del mismo grupo se deshacen juntos. */
+  historyGroup: string | null;
 };
 
-export type EditorAction =
+/** Máximo de pasos que se pueden deshacer. */
+export const HISTORY_LIMIT = 100;
+
+type BaseEditorAction =
   | { type: "select"; id: string | null }
+  /** Copia una sección justo debajo de ella y selecciona la copia. */
+  | { type: "duplicateSection"; id: string }
   | { type: "addSection"; sectionType: SectionType }
   /** Inserta una sección nueva en `index` (arrastrar desde el menú de bloques). */
   | { type: "insertSection"; sectionType: SectionType; index: number }
@@ -82,6 +93,12 @@ export type EditorAction =
   | { type: "removeShape"; id: string; shapeId: string }
   | { type: "selectShape"; id: string; shapeId: string | null };
 
+/**
+ * Acciones del editor. `group` agrupa cambios seguidos para deshacerlos de una
+ * vez: escribir en un campo, arrastrar un elemento, mover un selector de color...
+ */
+export type EditorAction = ({ type: "undo" } | { type: "redo" } | BaseEditorAction) & { group?: string };
+
 export function createEditorState(document: PageDocument): EditorState {
   return {
     document,
@@ -92,6 +109,94 @@ export function createEditorState(document: PageDocument): EditorState {
     dirty: false,
     revision: 0,
     savedRevision: 0,
+    past: [],
+    future: [],
+    historyGroup: null,
+  };
+}
+
+export function canUndo(state: EditorState): boolean {
+  return state.past.length > 0;
+}
+
+export function canRedo(state: EditorState): boolean {
+  return state.future.length > 0;
+}
+
+/**
+ * Reducer del editor con historial (deshacer/rehacer). Cada cambio del
+ * documento guarda la versión anterior; los cambios seguidos del mismo
+ * `group` se agrupan en un solo paso.
+ */
+export function editorReducer(state: EditorState, action: EditorAction): EditorState {
+  if (action.type === "undo") {
+    const previous = state.past.at(-1);
+    if (!previous) return state;
+    return restore(state, previous, state.past.slice(0, -1), [...state.future, state.document]);
+  }
+  if (action.type === "redo") {
+    const next = state.future.at(-1);
+    if (!next) return state;
+    return restore(state, next, [...state.past, state.document], state.future.slice(0, -1));
+  }
+
+  const next = applyAction(state, action);
+  if (next === state) return state;
+
+  if (next.document === state.document) {
+    // Cambio sin tocar la página (selección, guardado): se corta el grupo,
+    // salvo al guardar, que ocurre solo mientras se sigue escribiendo.
+    return action.type === "markSaved" ? next : { ...next, historyGroup: null };
+  }
+
+  const group = action.group ?? autoGroup(action);
+  const coalesce = group !== null && group === state.historyGroup;
+  const past = coalesce ? state.past : [...state.past, state.document].slice(-HISTORY_LIMIT);
+  return { ...next, past, future: [], historyGroup: group };
+}
+
+/**
+ * Grupo por defecto de los cambios que suelen llegar seguidos (escribir,
+ * mover un selector de color o un deslizador...). Lo que no se agrupa es un
+ * paso propio en el historial.
+ */
+function autoGroup(action: BaseEditorAction): string | null {
+  switch (action.type) {
+    case "updateSectionField":
+      return `field:${action.id}:${action.path.join(".")}`;
+    case "updateTheme":
+      return `theme:${action.path.join(".")}`;
+    case "updateElementStyle":
+      return `style:${action.id}:${action.key}:${Object.keys(action.patch).sort().join(",")}`;
+    case "setSectionBackground":
+    case "setSectionBackgroundOpacity":
+      return `background:${action.id}`;
+    case "updateShape":
+      return `shape:${action.id}:${action.shapeId}:${Object.keys(action.patch).sort().join(",")}`;
+    case "setFreeHeight":
+      return `height:${action.id}`;
+    default:
+      return null;
+  }
+}
+
+/** Vuelve a una versión del historial manteniendo la selección si sigue existiendo. */
+function restore(state: EditorState, document: PageDocument, past: PageDocument[], future: PageDocument[]): EditorState {
+  const section = document.sections.find((s) => s.id === state.selectedId);
+  const keepShape = section?.shapes?.some((shape) => shape.id === state.selectedShapeId) ?? false;
+  const revision = state.revision + 1;
+  return {
+    ...state,
+    document,
+    past,
+    future,
+    historyGroup: null,
+    revision,
+    dirty: revision !== state.savedRevision,
+    selectedId: section ? section.id : null,
+    selectedElement: section ? state.selectedElement : null,
+    selectedElements: section ? state.selectedElements : [],
+    selectedShapeId: keepShape ? state.selectedShapeId : null,
   };
 }
 
@@ -99,10 +204,18 @@ export function canAddSection(state: EditorState): boolean {
   return state.document.sections.length < LIMITS.sections;
 }
 
-export function editorReducer(state: EditorState, action: EditorAction): EditorState {
+function applyAction(state: EditorState, action: BaseEditorAction): EditorState {
   const { sections } = state.document;
 
   switch (action.type) {
+    case "duplicateSection": {
+      const index = sections.findIndex((s) => s.id === action.id);
+      if (index === -1 || !canAddSection(state)) return state;
+      const copy = duplicateSection(sections[index]);
+      const next = [...sections.slice(0, index + 1), copy, ...sections.slice(index + 1)];
+      return { ...withSections(state, next, copy.id), selectedElement: null, selectedElements: [], selectedShapeId: null };
+    }
+
     case "select": {
       if (action.id !== null && !sections.some((s) => s.id === action.id)) return state;
       if (action.id === state.selectedId && state.selectedElements.length === 0 && state.selectedShapeId === null) return state;
@@ -154,7 +267,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
 
     case "setElementOrder":
       return updateSection(state, action.id, (section) => {
-        const allowed = elementsOf(section.type);
+        const allowed = layoutElementsOf(section.type);
         // Conserva solo elementos de la sección, sin repetir, y añade los que falten.
         const order = [...new Set(action.order.filter((key) => allowed.includes(key)))];
         for (const key of allowed) if (!order.includes(key)) order.push(key);
@@ -174,7 +287,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         }
         const items: FreeLayout["items"] = {};
         for (const [key, position] of Object.entries(action.free.items) as [ElementKey, FreePosition][]) {
-          if (elementsOf(section.type).includes(key)) items[key] = clampPosition(position);
+          if (layoutElementsOf(section.type).includes(key)) items[key] = clampPosition(position);
         }
         return withLayout(section, { ...section.layout, free: { height: clampHeight(action.free.height), items } });
       });
@@ -340,7 +453,7 @@ function withFreePositions(
 ): Section {
   const free = section.layout?.free;
   if (!free) return section;
-  const allowed = elementsOf(section.type);
+  const allowed = layoutElementsOf(section.type);
   const items = { ...free.items };
   let changed = false;
   for (const [key, position] of Object.entries(positions) as [ElementKey, FreePosition][]) {

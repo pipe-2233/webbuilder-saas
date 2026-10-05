@@ -100,6 +100,34 @@ describe("alineación", () => {
   });
 });
 
+describe("animaciones de los elementos", () => {
+  function withTitleStyle(style: Record<string, unknown>) {
+    const doc = asJson(validDoc()) as { sections: { styles?: Record<string, unknown> }[] };
+    doc.sections[1].styles = { title: style };
+    return parsePageDocument(doc);
+  }
+
+  it("acepta entrada, continua, ratón y retraso", () => {
+    expect(
+      withTitleStyle({ animation: "glitch", animationDelay: 300, loop: "float", hover: "tilt" }).success,
+    ).toBe(true);
+  });
+
+  it("acepta las animaciones clásicas guardadas antes", () => {
+    expect(withTitleStyle({ animation: "fade-in" }).success).toBe(true);
+  });
+
+  it.each([
+    ["entrada desconocida", { animation: "explotar" }],
+    ["continua desconocida", { loop: "bailar" }],
+    ["ratón desconocido", { hover: "volar" }],
+    ["retraso negativo", { animationDelay: -100 }],
+    ["retraso enorme", { animationDelay: 99999 }],
+  ])("rechaza %s", (_name, style) => {
+    expect(withTitleStyle(style).success).toBe(false);
+  });
+});
+
 describe("formas decorativas", () => {
   const shape = {
     id: "s1",

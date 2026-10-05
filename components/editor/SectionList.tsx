@@ -7,7 +7,7 @@ import {
   type SortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ChevronDown, ChevronUp, GripVertical, Pencil, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy, GripVertical, Pencil, Trash2 } from "lucide-react";
 import type { ButtonHTMLAttributes } from "react";
 
 import { dragId, parseDragId } from "@/lib/editor/dnd";
@@ -119,6 +119,9 @@ function SectionRow({ section, selected, isFirst, isLast, dispatch, onEdit }: Se
       <div
         className={`flex shrink-0 items-center pr-1 ${selected ? "" : "opacity-0 group-focus-within:opacity-100 group-hover:opacity-100"}`}
       >
+        <IconButton label={`Duplicar ${label} (Ctrl+D)`} onClick={() => dispatch({ type: "duplicateSection", id: section.id })}>
+          <Copy className="size-4" />
+        </IconButton>
         <IconButton label={`Editar ${label}`} onClick={() => onEdit(section.id)}>
           <Pencil className="size-4" />
         </IconButton>

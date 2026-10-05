@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { ENTRANCE_KEYS, HOVER_KEYS, LOOP_KEYS } from "./animations";
 import { ELEMENT_KEYS, ELEMENT_WIDTH_KEYS, RADIUS_KEYS, TEXT_SIZE_KEYS } from "./elements";
 
 /**
@@ -136,7 +137,14 @@ export const elementStyleSchema = z.object({
   background: hexColor.optional(),
   /** Botones e imágenes: forma de las esquinas. */
   radius: z.enum(RADIUS_KEYS).optional(),
-  animation: z.enum(["none", "fade-in", "slide-up", "slide-right", "zoom-in"]).optional(),
+  /** Animación de entrada (una vez, al aparecer en pantalla). */
+  animation: z.enum(["none", ...ENTRANCE_KEYS]).optional(),
+  /** Retraso de la animación de entrada, en milisegundos (para escalonar). */
+  animationDelay: z.number().int().min(0).max(2000).optional(),
+  /** Animación continua (se repite). */
+  loop: z.enum(LOOP_KEYS).optional(),
+  /** Efecto al pasar el ratón. */
+  hover: z.enum(HOVER_KEYS).optional(),
 });
 
 /** Posición libre de un elemento en escritorio. */

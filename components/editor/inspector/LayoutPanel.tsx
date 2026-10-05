@@ -3,7 +3,7 @@
 import { ChevronDown, ChevronUp, LayoutGrid, RotateCcw } from "lucide-react";
 
 import type { EditorAction } from "@/lib/editor/reducer";
-import { ELEMENT_LABELS, elementsOf, supportsFreeLayout, type ElementKey } from "@/lib/page-model/elements";
+import { ELEMENT_LABELS, layoutElementsOf, supportsFreeLayout, type ElementKey } from "@/lib/page-model/elements";
 import type { Section } from "@/lib/page-model/schema";
 
 import { PanelGroup } from "./fields";
@@ -17,7 +17,7 @@ type LayoutPanelProps = {
 
 /** Elementos de la sección: acceso a cada uno, orden en móvil y posición libre en escritorio. */
 export function LayoutPanel({ section, device, dispatch, onSelectElement }: LayoutPanelProps) {
-  const elements = elementsOf(section.type);
+  const elements = layoutElementsOf(section.type);
   const order = section.layout?.order ?? elements;
   const free = section.layout?.free;
   const canBeFree = supportsFreeLayout(section.type);

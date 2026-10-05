@@ -16,7 +16,7 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { GripVertical, Monitor, Smartphone } from "lucide-react";
+import { GripVertical, Monitor, Redo2, Smartphone, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
@@ -24,7 +24,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "r
 import { useAutosave } from "@/hooks/useAutosave";
 import { AUTH_ROUTES } from "@/lib/auth/routes";
 import { parseDragId, resolveDrop } from "@/lib/editor/dnd";
-import { canAddSection, createEditorState, editorReducer } from "@/lib/editor/reducer";
+import { canAddSection, canRedo, canUndo, createEditorState, editorReducer } from "@/lib/editor/reducer";
 import type { ElementKey } from "@/lib/page-model/elements";
 import type { PageDocument, Section } from "@/lib/page-model/schema";
 import { SECTION_INFO } from "@/lib/page-model/section-info";
@@ -108,6 +108,29 @@ export function Editor({ projectId, userId, projectName, initialDocument }: Edit
     dispatch({ type: "select", id });
     setTab("edit");
   }, []);
+
+  // Atajos de teclado: deshacer, rehacer y duplicar la sección seleccionada.
+  // Mientras se escribe en un campo o en un texto de la página se dejan al navegador.
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("input, textarea, select, [contenteditable]")) return;
+      if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
+      const key = event.key.toLowerCase();
+      if (key === "z" && !event.shiftKey) {
+        event.preventDefault();
+        dispatch({ type: "undo" });
+      } else if ((key === "z" && event.shiftKey) || key === "y") {
+        event.preventDefault();
+        dispatch({ type: "redo" });
+      } else if (key === "d" && selectedId) {
+        event.preventDefault();
+        dispatch({ type: "duplicateSection", id: selectedId });
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [selectedId]);
 
   // Avisa antes de cerrar o recargar si quedan cambios sin guardar.
   useEffect(() => {
@@ -220,6 +243,28 @@ export function Editor({ projectId, userId, projectName, initialDocument }: Edit
             </div>
             <div className="flex min-w-0 items-center gap-4">
               <SaveIndicator status={saveStatus} error={saveError} onRetry={() => void saveNow()} />
+              <div className="flex shrink-0 rounded-lg bg-zinc-100 p-0.5 dark:bg-zinc-800">
+                <button
+                  type="button"
+                  aria-label="Deshacer (Ctrl+Z)"
+                  title="Deshacer (Ctrl+Z)"
+                  disabled={!canUndo(state)}
+                  onClick={() => dispatch({ type: "undo" })}
+                  className="rounded-md p-1.5 text-zinc-600 transition-colors hover:bg-white hover:text-zinc-900 disabled:opacity-30 dark:text-zinc-400 dark:hover:bg-zinc-950 dark:hover:text-zinc-50"
+                >
+                  <Undo2 className="size-4" aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Rehacer (Ctrl+Y)"
+                  title="Rehacer (Ctrl+Y)"
+                  disabled={!canRedo(state)}
+                  onClick={() => dispatch({ type: "redo" })}
+                  className="rounded-md p-1.5 text-zinc-600 transition-colors hover:bg-white hover:text-zinc-900 disabled:opacity-30 dark:text-zinc-400 dark:hover:bg-zinc-950 dark:hover:text-zinc-50"
+                >
+                  <Redo2 className="size-4" aria-hidden />
+                </button>
+              </div>
               <div
                 role="radiogroup"
                 aria-label="Vista previa"

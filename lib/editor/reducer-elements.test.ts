@@ -146,10 +146,29 @@ describe("posición libre", () => {
     expect(isValid(state)).toBe(true);
   });
 
-  it("solo en portada, texto e imagen", () => {
+  it("funciona en todas las secciones, por ejemplo en la cabecera", () => {
     const start = initial();
     const headerId = start.document.sections[0].id;
-    expect(editorReducer(start, { type: "setFreeLayout", id: headerId, free })).toBe(start);
+    const state = editorReducer(start, {
+      type: "setFreeLayout",
+      id: headerId,
+      free: { height: 80, items: { logo: { x: 0, y: 10, w: 30 }, links: { x: 60, y: 10, w: 40 } } },
+    });
+    expect(state.document.sections[0].layout?.free?.items.logo).toEqual({ x: 0, y: 10, w: 30 });
+    expect(isValid(state)).toBe(true);
+  });
+
+  it("en características se mueve el grupo de tarjetas, no cada título por separado", () => {
+    const start = initial();
+    const featuresId = start.document.sections[2].id;
+    const state = editorReducer(start, {
+      type: "setFreeLayout",
+      id: featuresId,
+      free: { height: 400, items: { items: { x: 0, y: 80, w: 100 }, itemTitle: { x: 0, y: 0, w: 10 } } },
+    });
+    const items = state.document.sections[2].layout?.free?.items;
+    expect(items?.items).toEqual({ x: 0, y: 80, w: 100 });
+    expect(items?.itemTitle).toBeUndefined();
   });
 
   it("mueve un elemento, lo mantiene dentro y agranda la sección si hace falta", () => {

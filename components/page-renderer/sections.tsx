@@ -29,19 +29,26 @@ export function HeaderSection({ section }: Props<"header">) {
   const styles = section.styles;
   return (
     <SectionShell section={section} className="py-5">
-      <nav className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3">
-        <EditableText
-          sectionId={section.id}
-          elementKey="logo"
-          path={["logoText"]}
-          value={logoText}
-          className={`${heading} text-xl`}
-          style={textStyle(styles?.logo)}
-          maxLength={TEXT_LIMITS.logoText}
-          placeholder="Nombre del sitio"
-          required
-        />
-        {links.length > 0 && (
+      <nav>
+        <ElementsContainer
+          section={section}
+          className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3"
+        >
+          <PageElement section={section} elementKey="logo">
+            <EditableText
+              sectionId={section.id}
+              elementKey="logo"
+              path={["logoText"]}
+              value={logoText}
+              className={`${heading} block text-xl`}
+              style={textStyle(styles?.logo)}
+              maxLength={TEXT_LIMITS.logoText}
+              placeholder="Nombre del sitio"
+              required
+            />
+          </PageElement>
+          {links.length > 0 && (
+          <PageElement section={section} elementKey="links">
           <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium">
             {links.map((link, index) => (
               <li key={link.id}>
@@ -60,7 +67,9 @@ export function HeaderSection({ section }: Props<"header">) {
               </li>
             ))}
           </ul>
-        )}
+          </PageElement>
+          )}
+        </ElementsContainer>
       </nav>
     </SectionShell>
   );
@@ -254,19 +263,24 @@ export function FeaturesSection({ section }: Props<"features">) {
   const styles = section.styles;
   return (
     <SectionShell section={section}>
-      <div className="flex flex-col gap-10">
-        <EditableText
-          sectionId={section.id}
-          elementKey="title"
-          path={["title"]}
-          value={title}
-          as="h2"
-          className={`${heading} text-center text-3xl`}
-          style={textStyle(styles?.title)}
-          maxLength={TEXT_LIMITS.sectionTitle}
-          placeholder="Título de la sección"
-        />
+      <ElementsContainer section={section} className="flex flex-col gap-10">
+        <ShowWhenFilledOrEditing value={title}>
+          <PageElement section={section} elementKey="title" className="w-full">
+            <EditableText
+              sectionId={section.id}
+              elementKey="title"
+              path={["title"]}
+              value={title}
+              as="h2"
+              className={`${heading} block text-center text-3xl`}
+              style={textStyle(styles?.title)}
+              maxLength={TEXT_LIMITS.sectionTitle}
+              placeholder="Título de la sección"
+            />
+          </PageElement>
+        </ShowWhenFilledOrEditing>
         {items.length > 0 && (
+          <PageElement section={section} elementKey="items" className="w-full">
           <ul className="grid gap-6 @2xl:grid-cols-2 @4xl:grid-cols-3">
             {items.map((item, index) => (
               <li
@@ -300,8 +314,9 @@ export function FeaturesSection({ section }: Props<"features">) {
               </li>
             ))}
           </ul>
+          </PageElement>
         )}
-      </div>
+      </ElementsContainer>
     </SectionShell>
   );
 }
@@ -311,20 +326,26 @@ export function FooterSection({ section }: Props<"footer">) {
   const styles = section.styles;
   return (
     <SectionShell section={section} className="py-10">
-      <div
+      <ElementsContainer
+        section={section}
         className={`${muted} flex flex-col items-center justify-between gap-4 border-t border-(--page-muted)/25 pt-8 text-sm @2xl:flex-row`}
       >
-        <EditableText
-          sectionId={section.id}
-          elementKey="text"
-          path={["text"]}
-          value={text}
-          as="p"
-          style={textStyle(styles?.text)}
-          maxLength={TEXT_LIMITS.footerText}
-          placeholder="Texto del pie de página"
-        />
+        <ShowWhenFilledOrEditing value={text}>
+          <PageElement section={section} elementKey="text">
+            <EditableText
+              sectionId={section.id}
+              elementKey="text"
+              path={["text"]}
+              value={text}
+              as="p"
+              style={textStyle(styles?.text)}
+              maxLength={TEXT_LIMITS.footerText}
+              placeholder="Texto del pie de página"
+            />
+          </PageElement>
+        </ShowWhenFilledOrEditing>
         {links.length > 0 && (
+          <PageElement section={section} elementKey="links">
           <ul className="flex flex-wrap gap-x-5 gap-y-2">
             {links.map((link, index) => (
               <li key={link.id}>
@@ -343,8 +364,9 @@ export function FooterSection({ section }: Props<"footer">) {
               </li>
             ))}
           </ul>
+          </PageElement>
         )}
-      </div>
+      </ElementsContainer>
     </SectionShell>
   );
 }

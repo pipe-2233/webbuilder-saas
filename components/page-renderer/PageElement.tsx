@@ -12,8 +12,9 @@ import {
   useState,
 } from "react";
 
-import { clampHeight, movePosition, resizeBox, resizeWidth } from "@/lib/editor/free-layout";
-import { ELEMENT_LABELS, elementsOf, supportsFreeLayout, type ElementKey } from "@/lib/page-model/elements";
+import { clampHeight, clampPosition, movePosition, resizeBox, resizeWidth } from "@/lib/editor/free-layout";
+import { snapBox, type Box } from "@/lib/editor/snap";
+import { ELEMENT_LABELS, layoutElementsOf, supportsFreeLayout, type ElementKey } from "@/lib/page-model/elements";
 import type { FreeLayout, FreePosition, Section } from "@/lib/page-model/schema";
 
 import { usePageEdit, type PageEditApi } from "./edit-context";
@@ -55,6 +56,7 @@ export function ElementsContainer({ section, className, children }: ContainerPro
       {edit && free && edit.device === "desktop" && edit.selectedSectionId === section.id && (
         <HeightHandle section={section} free={free} edit={edit} />
       )}
+      {edit?.guides?.sectionId === section.id && <SnapGuideLines guides={edit.guides} />}
     </div>
   );
 }
@@ -109,9 +111,13 @@ export function PageElement({ section, elementKey, children, className, flow = "
     Object.assign(css, { "--x": `${position.x}%`, "--y": `${position.y}px`, "--w": `${position.w}%` });
     if (position.h !== undefined) Object.assign(css, { "--h": `${position.h}px` });
   }
+  if (style?.animationDelay) Object.assign(css, { "--anim-delay": `${style.animationDelay}ms` });
 
   const classes = [
     style?.width ? WIDTH_CLASS[style.width] : "",
+    // Animación continua y efecto al pasar el ratón (ver app/globals.css).
+    style?.loop ? `loop-${style.loop}` : "",
+    style?.hover ? `hover-${style.hover}` : "",
     position ? "@3xl:absolute @3xl:top-(--y) @3xl:left-(--x) @3xl:m-0 @3xl:w-(--w) @3xl:max-w-none" : "",
     position?.h !== undefined ? "@3xl:h-(--h)" : "",
     className ?? "",
@@ -153,7 +159,7 @@ export function PageElement({ section, elementKey, children, className, flow = "
 }
 
 function orderOf(section: Section, key: ElementKey): number {
-  const order = section.layout?.order ?? elementsOf(section.type);
+  const order = section.layout?.order ?? layoutElementsOf(section.type);
   const index = order.indexOf(key);
   return index === -1 ? order.length : index;
 }
@@ -169,6 +175,14 @@ type EditableElementProps = {
 };
 
 const KEY_STEP = { x: 1, y: 8 };
+
+/** Evento para volver a reproducir la animación de entrada de unos elementos (editor). */
+export const REPLAY_EVENT = "wb:replay-animation";
+export type ReplayDetail = { sectionId: string; keys: ElementKey[] };
+
+export function replayAnimation(detail: ReplayDetail) {
+  window.dispatchEvent(new CustomEvent<ReplayDetail>(REPLAY_EVENT, { detail }));
+}
 const DEFAULT_POSITION: FreePosition = { x: 0, y: 0, w: 50 };
 
 function EditableElement({ section, elementKey, edit, style, className, dataAttributes, children }: EditableElementProps) {
@@ -192,13 +206,60 @@ function EditableElement({ section, elementKey, edit, style, className, dataAttr
     return edit.selectedElements.includes(elementKey) ? edit.selectedElements : [elementKey];
   }
 
-  /** Aplica posiciones y agranda la sección si algún elemento queda por debajo. */
-  function apply(positions: Partial<Record<ElementKey, FreePosition>>, geo: FreeGeometry) {
+  /**
+   * Aplica posiciones y agranda la sección si algún elemento queda por debajo.
+   * `group` identifica el arrastre, para deshacerlo de una sola vez.
+   */
+  function apply(positions: Partial<Record<ElementKey, FreePosition>>, geo: FreeGeometry, group: string) {
     let bottom = 0;
     for (const [key, position] of Object.entries(positions) as [ElementKey, FreePosition][]) {
       bottom = Math.max(bottom, position.y + (position.h ?? geo.heights[key] ?? 0));
     }
-    edit.setFreePositions(section.id, positions, bottom + 16);
+    edit.setFreePositions(section.id, positions, bottom + 16, group);
+  }
+
+  /** Caja en píxeles de un elemento en posición libre. */
+  function boxOf(key: ElementKey, position: FreePosition, geo: FreeGeometry): Box {
+    return {
+      left: (position.x / 100) * geo.width,
+      top: position.y,
+      width: (position.w / 100) * geo.width,
+      height: position.h ?? geo.heights[key] ?? 0,
+    };
+  }
+
+  /**
+   * Ajusta las posiciones movidas a las guías magnéticas (bordes y centros de
+   * la sección y de los demás elementos). Con Alt pulsado no se ajusta.
+   */
+  function snap(
+    positions: Partial<Record<ElementKey, FreePosition>>,
+    geo: FreeGeometry,
+    keys: ElementKey[],
+    disabled: boolean,
+  ): Partial<Record<ElementKey, FreePosition>> {
+    const primary = positions[elementKey];
+    if (disabled || !primary) {
+      edit.setGuides(null);
+      return positions;
+    }
+    const others = (Object.entries(geo.free.items) as [ElementKey, FreePosition][])
+      .filter(([key]) => !keys.includes(key))
+      .map(([key, position]) => boxOf(key, position, geo));
+    const result = snapBox(boxOf(elementKey, primary, geo), others, { width: geo.width, height: geo.free.height });
+    edit.setGuides(
+      result.guides.x.length || result.guides.y.length ? { sectionId: section.id, ...result.guides } : null,
+    );
+    if (!result.dx && !result.dy) return positions;
+    const snapped: Partial<Record<ElementKey, FreePosition>> = {};
+    for (const [key, position] of Object.entries(positions) as [ElementKey, FreePosition][]) {
+      snapped[key] = clampPosition({
+        ...position,
+        x: position.x + (result.dx / geo.width) * 100,
+        y: position.y + result.dy,
+      });
+    }
+    return snapped;
   }
 
   function startDrag(event: ReactPointerEvent<HTMLElement>, mode: "move" | "width" | "corner") {
@@ -212,6 +273,12 @@ function EditableElement({ section, elementKey, edit, style, className, dataAttr
       FreePosition
     >;
     const startHeight = geo.heights[elementKey] ?? 0;
+    const group = `drag:${section.id}:${elementKey}:${Date.now()}`;
+    // Al arrastrar ya no se está escribiendo: se suelta el cursor del texto para
+    // que Ctrl+Z deshaga el movimiento (y no la escritura).
+    if (document.activeElement instanceof HTMLElement && document.activeElement.isContentEditable) {
+      document.activeElement.blur();
+    }
     const { clientX, clientY, pointerId } = event;
     const handle = event.currentTarget;
     handle.setPointerCapture(pointerId);
@@ -229,9 +296,10 @@ function EditableElement({ section, elementKey, edit, style, className, dataAttr
               ? resizeWidth(start, dx, geo.width)
               : resizeBox(start, dx, dy, geo.width, startHeight);
       }
-      apply(positions, geo);
+      apply(mode === "move" ? snap(positions, geo, keys, move.altKey) : positions, geo, group);
     };
     const onEnd = () => {
+      edit.setGuides(null);
       handle.removeEventListener("pointermove", onMove);
       handle.removeEventListener("pointerup", onEnd);
       handle.removeEventListener("pointercancel", onEnd);
@@ -262,10 +330,27 @@ function EditableElement({ section, elementKey, edit, style, className, dataAttr
     for (const key of movingKeys()) {
       positions[key] = movePosition(geo.free.items[key] ?? DEFAULT_POSITION, dxPx, dyPx, geo.width);
     }
-    apply(positions, geo);
+    // Las flechas seguidas sobre la misma selección se deshacen de una vez.
+    apply(positions, geo, `nudge:${section.id}:${movingKeys().join(",")}`);
   }
 
   const stop = (event: SyntheticEvent) => event.stopPropagation();
+
+  // "Reproducir" desde el panel: vuelve a lanzar la animación de entrada.
+  useEffect(() => {
+    function replay(event: Event) {
+      const { sectionId, keys } = (event as CustomEvent<ReplayDetail>).detail;
+      const node = ref.current;
+      if (!node || sectionId !== section.id || !keys.includes(elementKey)) return;
+      const animation = [...node.classList].find((name) => name.startsWith("animate-"));
+      if (!animation) return;
+      node.classList.remove(animation);
+      void node.offsetWidth; // fuerza al navegador a reiniciar la animación
+      node.classList.add(animation);
+    }
+    window.addEventListener(REPLAY_EVENT, replay);
+    return () => window.removeEventListener(REPLAY_EVENT, replay);
+  }, [section.id, elementKey]);
 
   return (
     <div
@@ -344,10 +429,11 @@ function HeightHandle({ section, free, edit }: { section: Section; free: FreeLay
     event.stopPropagation();
     const startY = event.clientY;
     const startHeight = free.height;
+    const group = `height-drag:${section.id}:${Date.now()}`;
     const handle = event.currentTarget;
     handle.setPointerCapture(event.pointerId);
     const onMove = (move: PointerEvent) =>
-      edit.setFreeHeight(section.id, clampHeight(startHeight + move.clientY - startY));
+      edit.setFreeHeight(section.id, clampHeight(startHeight + move.clientY - startY), group);
     const onEnd = () => {
       handle.removeEventListener("pointermove", onMove);
       handle.removeEventListener("pointerup", onEnd);
@@ -372,5 +458,19 @@ function HeightHandle({ section, free, edit }: { section: Section; free: FreeLay
       <GripHorizontal className="size-3.5" aria-hidden />
       Alto
     </button>
+  );
+}
+
+/** Líneas de guía magnética (solo en el editor, mientras se arrastra). */
+function SnapGuideLines({ guides }: { guides: { x: number[]; y: number[] } }) {
+  return (
+    <div data-editor-ui="" aria-hidden className="pointer-events-none absolute inset-0 z-40">
+      {guides.x.map((x) => (
+        <span key={`x${x}`} className="absolute top-0 bottom-0 w-px bg-pink-500" style={{ left: x }} />
+      ))}
+      {guides.y.map((y) => (
+        <span key={`y${y}`} className="absolute right-0 left-0 h-px bg-pink-500" style={{ top: y }} />
+      ))}
+    </div>
   );
 }

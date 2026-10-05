@@ -4,6 +4,7 @@ import {
   type NavLink,
   type PageDocument,
   type PageTheme,
+  type Section,
   type SectionOfType,
   type SectionType,
 } from "./schema";
@@ -66,6 +67,20 @@ const SECTION_FACTORIES: { [T in SectionType]: () => SectionOfType<T>["props"] }
     links: [],
   }),
 };
+
+/**
+ * Copia de una sección con ids nuevos (la sección, sus enlaces, elementos y
+ * formas), para poder tener las dos en la página a la vez.
+ */
+export function duplicateSection<S extends Section>(section: S): S {
+  const copy = structuredClone(section);
+  copy.id = createId();
+  const props = copy.props as { links?: { id: string }[]; items?: { id: string }[] };
+  props.links?.forEach((link) => (link.id = createId()));
+  props.items?.forEach((item) => (item.id = createId()));
+  copy.shapes?.forEach((shape) => (shape.id = createId()));
+  return copy;
+}
 
 /** Enlace nuevo para el menú o el pie de página. */
 export function createNavLink(): NavLink {

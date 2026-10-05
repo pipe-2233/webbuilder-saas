@@ -44,6 +44,28 @@ body {
   }
 }
 
+/* ==========================================================================
+ * Animaciones de los elementos de las páginas.
+ * Catálogo y nombres en español: lib/page-model/animations.ts
+ *
+ * - Entrada (animate-*): en el envoltorio del elemento, una sola vez.
+ *   `--anim-delay` permite escalonarlas.
+ * - Continua (loop-*) y al pasar el ratón (hover-*): en el contenido del
+ *   elemento. Las continuas usan translate/scale/rotate y las de ratón usan
+ *   transform, así se pueden combinar sin pisarse.
+ * ========================================================================== */
+
+.reveal-hidden {
+  opacity: 0 !important;
+}
+
+/* --- Entrada ------------------------------------------------------------- */
+
+[class*="animate-"] {
+  animation-delay: var(--anim-delay, 0ms);
+  animation-fill-mode: both;
+}
+
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -60,43 +82,187 @@ body {
   from { opacity: 0; transform: scale(0.9); }
   to { opacity: 1; transform: scale(1); }
 }
-
-.reveal-hidden {
-  opacity: 0 !important;
+/* El recorte final es un poco mayor que el elemento para no tapar sombras ni bordes. */
+@keyframes wb-curtain {
+  from { clip-path: inset(0 0 100% 0); transform: translateY(14px); }
+  to { clip-path: inset(-40px); transform: none; }
+}
+@keyframes wb-blur-in {
+  from { opacity: 0; filter: blur(16px); transform: scale(1.06); }
+  to { opacity: 1; filter: blur(0); transform: none; }
+}
+@keyframes wb-flip-3d {
+  from { opacity: 0; transform: perspective(900px) rotateX(-80deg) translateY(24px); }
+  to { opacity: 1; transform: perspective(900px) rotateX(0) translateY(0); }
+}
+@keyframes wb-elastic {
+  0% { opacity: 0; transform: scale(0.3); }
+  45% { opacity: 1; transform: scale(1.08); }
+  65% { transform: scale(0.95); }
+  82% { transform: scale(1.02); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes wb-typewriter {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(-40px); }
+}
+@keyframes wb-glitch {
+  0% { opacity: 0; transform: translate(-8px, 0) skewX(14deg); filter: hue-rotate(90deg); clip-path: inset(0 0 100% 0); }
+  20% { opacity: 1; transform: translate(6px, -2px) skewX(-8deg); clip-path: inset(10% 0 55% 0); }
+  40% { transform: translate(-4px, 2px); clip-path: inset(60% 0 5% 0); filter: hue-rotate(-70deg); }
+  60% { transform: translate(3px, 0) skewX(4deg); clip-path: inset(30% 0 30% 0); }
+  80% { transform: translate(-1px, 0); clip-path: inset(-40px); filter: none; }
+  100% { opacity: 1; transform: none; clip-path: inset(-40px); filter: none; }
+}
+@keyframes wb-spotlight {
+  from { clip-path: circle(0% at 50% 50%); opacity: 0.3; }
+  to { clip-path: circle(150% at 50% 50%); opacity: 1; }
+}
+@keyframes wb-rise-skew {
+  from { opacity: 0; transform: translateY(60px) skewY(7deg); }
+  to { opacity: 1; transform: none; }
 }
 
-/*
- * Accesibilidad y robustez de las animaciones de entrada:
- * - Sin JavaScript, el contenido nunca debe quedar invisible.
- * - Con "reducir movimiento" activado en el sistema, se muestra sin animar.
- */
+.animate-fade-in { animation-name: fade-in; animation-duration: 0.7s; animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); }
+.animate-slide-up { animation-name: slide-up; animation-duration: 0.7s; animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); }
+.animate-slide-right { animation-name: slide-right; animation-duration: 0.7s; animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); }
+.animate-zoom-in { animation-name: zoom-in; animation-duration: 0.7s; animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); }
+.animate-curtain { animation-name: wb-curtain; animation-duration: 0.9s; animation-timing-function: cubic-bezier(0.77, 0, 0.18, 1); }
+.animate-blur-in { animation-name: wb-blur-in; animation-duration: 0.9s; animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); }
+.animate-flip-3d { animation-name: wb-flip-3d; animation-duration: 0.9s; animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); transform-origin: top center; }
+.animate-elastic { animation-name: wb-elastic; animation-duration: 0.9s; animation-timing-function: ease-out; }
+.animate-typewriter { animation-name: wb-typewriter; animation-duration: 1.4s; animation-timing-function: steps(28, end); }
+.animate-glitch { animation-name: wb-glitch; animation-duration: 0.7s; animation-timing-function: linear; }
+.animate-spotlight { animation-name: wb-spotlight; animation-duration: 1s; animation-timing-function: cubic-bezier(0.6, 0, 0.2, 1); }
+.animate-rise-skew { animation-name: wb-rise-skew; animation-duration: 0.9s; animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+/* --- Continuas ----------------------------------------------------------- */
+
+@keyframes wb-float {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -10px; }
+}
+@keyframes wb-pulse {
+  0%, 100% { scale: 1; }
+  50% { scale: 1.06; }
+}
+@keyframes wb-wobble {
+  0%, 100% { rotate: -2deg; }
+  50% { rotate: 2deg; }
+}
+@keyframes wb-spin {
+  to { rotate: 360deg; }
+}
+@keyframes wb-glow {
+  0%, 100% { filter: drop-shadow(0 0 0 transparent); }
+  50% { filter: drop-shadow(0 0 14px var(--page-primary, #7c3aed)); }
+}
+@keyframes wb-gradient-pan {
+  to { background-position: 200% center; }
+}
+@keyframes wb-shine {
+  0%, 60% { transform: translateX(-120%) skewX(-20deg); }
+  100% { transform: translateX(220%) skewX(-20deg); }
+}
+
+.loop-float > :not([data-editor-ui]) { animation: wb-float 4s ease-in-out infinite; }
+.loop-pulse > :not([data-editor-ui]) { animation: wb-pulse 1.6s ease-in-out infinite; }
+.loop-wobble > :not([data-editor-ui]) { animation: wb-wobble 2.6s ease-in-out infinite; }
+.loop-spin-slow > :not([data-editor-ui]) { animation: wb-spin 14s linear infinite; }
+.loop-glow > :not([data-editor-ui]) { animation: wb-glow 2.4s ease-in-out infinite; }
+.loop-gradient-text > :not([data-editor-ui]) {
+  background-image: linear-gradient(90deg, var(--page-primary, #7c3aed), var(--page-text, #18181b), var(--page-primary, #7c3aed));
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: wb-gradient-pan 4s linear infinite;
+}
+.loop-shine > :not([data-editor-ui]) {
+  position: relative;
+  overflow: hidden;
+}
+.loop-shine > :not([data-editor-ui])::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.55), transparent);
+  pointer-events: none;
+  animation: wb-shine 3s ease-in-out infinite;
+}
+
+/* En el editor, mientras se escribe en un elemento, su animación se detiene. */
+[data-editor-section] [class*="loop-"] > :focus-within,
+[data-editor-section] [class*="loop-"] > :focus {
+  animation-play-state: paused;
+}
+
+/* --- Al pasar el ratón --------------------------------------------------- */
+
+@keyframes wb-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-5px) rotate(-1deg); }
+  40% { transform: translateX(5px) rotate(1deg); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
+
+[class*="hover-"] > :not([data-editor-ui]) {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background-size 0.3s ease;
+}
+.hover-lift > :not([data-editor-ui]):hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 30px -14px rgb(0 0 0 / 0.35);
+}
+.hover-grow > :not([data-editor-ui]):hover {
+  transform: scale(1.06);
+}
+.hover-tilt > :not([data-editor-ui]):hover {
+  transform: perspective(700px) rotateX(8deg) rotateY(-10deg);
+}
+.hover-glow > :not([data-editor-ui]):hover {
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--page-primary, #7c3aed) 40%, transparent),
+    0 0 28px color-mix(in srgb, var(--page-primary, #7c3aed) 60%, transparent);
+}
+.hover-underline > :not([data-editor-ui]) {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 0% 2px;
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+}
+.hover-underline > :not([data-editor-ui]):hover {
+  background-size: 100% 2px;
+}
+.hover-shake > :not([data-editor-ui]):hover {
+  animation: wb-shake 0.45s ease-in-out;
+}
+
+/* --- Accesibilidad y robustez --------------------------------------------- */
+
+/* Sin JavaScript, el contenido nunca debe quedar invisible. */
 @media (scripting: none) {
   .reveal-hidden {
     opacity: 1 !important;
   }
 }
+
+/* Con "reducir movimiento" activado en el sistema: todo se muestra sin animar. */
 @media (prefers-reduced-motion: reduce) {
   .reveal-hidden {
     opacity: 1 !important;
   }
-  .animate-fade-in,
-  .animate-slide-up,
-  .animate-slide-right,
-  .animate-zoom-in {
-    animation: none;
+  [class*="animate-"],
+  [class*="loop-"] > :not([data-editor-ui]),
+  [class*="loop-"] > :not([data-editor-ui])::after,
+  [class*="hover-"] > :not([data-editor-ui]) {
+    animation: none !important;
     opacity: 1;
+    clip-path: none;
+    filter: none;
   }
-}
-
-.animate-fade-in {
-  animation: fade-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-}
-.animate-slide-up {
-  animation: slide-up 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-}
-.animate-slide-right {
-  animation: slide-right 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-}
-.animate-zoom-in {
-  animation: zoom-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  [class*="hover-"] > :not([data-editor-ui]):hover {
+    transform: none !important;
+  }
 }

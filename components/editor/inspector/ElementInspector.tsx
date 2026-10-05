@@ -20,6 +20,7 @@ import {
 import { FONT_FAMILIES, type Alignment, type ElementStyle, type PageTheme, type Section } from "@/lib/page-model/schema";
 
 import { AlignToolbar } from "./AlignToolbar";
+import { AnimationPanel } from "./AnimationPanel";
 import { ColorInput, PanelGroup, Segmented } from "./fields";
 
 type ElementInspectorProps = {
@@ -91,7 +92,14 @@ export function ElementInspector({
 
       <AlignToolbar section={section} keys={selectedKeys} device={device} dispatch={dispatch} />
 
-      {kind !== "image" && (
+      {kind === "group" && (
+        <p className="rounded-lg bg-zinc-50 p-2.5 text-xs text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
+          Esto mueve todas las tarjetas juntas. Para cambiar la fuente o el color de sus títulos o
+          descripciones, haz clic sobre uno de ellos en la página.
+        </p>
+      )}
+
+      {(kind === "text" || kind === "button") && (
         <PanelGroup title="Texto">
           <div className="flex flex-col gap-1">
             <label htmlFor="element-font" className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
@@ -198,20 +206,7 @@ export function ElementInspector({
         )}
       </PanelGroup>
 
-      <PanelGroup title="Animación (Scroll)">
-        <Segmented<NonNullable<ElementStyle["animation"]> | "auto">
-          label="Efecto de Entrada"
-          value={style.animation ?? "auto"}
-          options={[
-            { value: "auto", label: "Ninguno" },
-            { value: "fade-in", label: "Fade" },
-            { value: "slide-up", label: "Subir" },
-            { value: "slide-right", label: "Lado" },
-            { value: "zoom-in", label: "Zoom" },
-          ]}
-          onChange={(animation) => set({ animation: animation === "auto" ? undefined : animation })}
-        />
-      </PanelGroup>
+      <AnimationPanel sectionId={section.id} keys={selectedKeys} style={style} set={set} />
       {hasStyle && (
         <button
           type="button"
