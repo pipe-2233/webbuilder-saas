@@ -8,6 +8,8 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
   type SyntheticEvent,
+  useEffect,
+  useState,
 } from "react";
 
 import { clampHeight, movePosition, resizeBox, resizeWidth } from "@/lib/editor/free-layout";
@@ -17,6 +19,7 @@ import type { FreeLayout, FreePosition, Section } from "@/lib/page-model/schema"
 import { usePageEdit, type PageEditApi } from "./edit-context";
 import { WIDTH_CLASS } from "./element-style";
 import { readFreeGeometry, type FreeGeometry } from "./free-dom";
+import { ShapeElement } from "./ShapeElement";
 
 /*
  * Colocación de los elementos de una sección:
@@ -45,12 +48,40 @@ export function ElementsContainer({ section, className, children }: ContainerPro
       style={style}
       className={`${className} ${free ? "@3xl:relative @3xl:mx-0 @3xl:block @3xl:h-(--free-h) @3xl:max-w-none" : ""}`}
     >
+      {section.shapes?.map((shape) => (
+        <ShapeElement key={shape.id} section={section} shape={shape} />
+      ))}
       {children}
       {edit && free && edit.device === "desktop" && edit.selectedSectionId === section.id && (
         <HeightHandle section={section} free={free} edit={edit} />
       )}
     </div>
   );
+}
+
+export function useReveal(animation?: string, editMode?: boolean) {
+  const [node, setNode] = useState<HTMLElement | null>(null);
+  const noAnim = !animation || animation === "none";
+  const [revealed, setRevealed] = useState(!!editMode || noAnim);
+
+  useEffect(() => {
+    if (editMode || noAnim || !node) return;
+    
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setRevealed(true);
+        observer.disconnect();
+      }
+    }, { threshold: 0.1 });
+    
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [node, editMode, noAnim]);
+
+  return { 
+    setNode, 
+    className: noAnim ? "" : (revealed ? `animate-${animation}` : "reveal-hidden") 
+  };
 }
 
 type ElementProps = {
@@ -92,9 +123,17 @@ export function PageElement({ section, elementKey, children, className, flow = "
     "data-free-sized": position?.h !== undefined ? "" : undefined,
   };
 
+  const { setNode, className: animClass } = useReveal(style?.animation, !!edit);
+  
   if (!edit) {
     return (
-      <div {...dataAttributes} style={css} className={classes}>
+      <div 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ref={setNode as any} 
+        {...dataAttributes} 
+        style={css} 
+        className={`${classes} ${animClass}`.trim()}
+      >
         {children}
       </div>
     );
@@ -105,7 +144,7 @@ export function PageElement({ section, elementKey, children, className, flow = "
       elementKey={elementKey}
       edit={edit}
       style={css}
-      className={classes}
+      className={`${classes} ${animClass}`.trim()}
       dataAttributes={dataAttributes}
     >
       {children}

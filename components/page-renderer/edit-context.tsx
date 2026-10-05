@@ -29,6 +29,8 @@ export type PageEditApi = {
     minHeight: number,
   ) => void;
   setFreeHeight: (sectionId: string, height: number) => void;
+  selectedShapeId: string | null;
+  dispatch: React.Dispatch<import("@/lib/editor/reducer").EditorAction>;
 };
 
 export const PageEditContext = createContext<PageEditApi | null>(null);

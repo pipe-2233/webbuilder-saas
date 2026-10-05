@@ -132,10 +132,11 @@ export const elementStyleSchema = z.object({
   italic: z.boolean().optional(),
   align: align.optional(),
   width: z.enum(ELEMENT_WIDTH_KEYS).optional(),
-  /** Botones: color de fondo. */
+  /** Botones y cuadros: color de fondo. */
   background: hexColor.optional(),
   /** Botones e imágenes: forma de las esquinas. */
   radius: z.enum(RADIUS_KEYS).optional(),
+  animation: z.enum(["none", "fade-in", "slide-up", "slide-right", "zoom-in"]).optional(),
 });
 
 /** Posición libre de un elemento en escritorio. */
@@ -163,14 +164,36 @@ export const sectionLayoutSchema = z.object({
     .optional(),
 });
 
+export const shapeSchema = z.object({
+  id: z.string(),
+  type: z.enum(["square", "circle", "pill", "triangle", "star", "hexagon", "arrow", "ring", "arch", "custom"]),
+  color: hexColor,
+  opacity: z.number().min(0).max(100).default(50),
+  radius: z.enum(RADIUS_KEYS).optional(), // Solo square
+  position: freePositionSchema, // x, y, w, h
+  zIndex: z.number().default(0),
+  rotation: z.number().default(0).optional(),
+  borderWidth: z.number().default(0).optional(),
+  borderColor: hexColor.optional(),
+  customPath: z.string().max(2000).optional(),
+  blur: z.number().min(0).max(50).optional(),
+  shadow: z.enum(["none", "sm", "md", "lg", "xl"]).optional(),
+});
+export type Shape = z.infer<typeof shapeSchema>;
+
 /** Campos comunes a todas las secciones. */
 const sectionBase = {
   id,
   /** Color de fondo propio; si no se indica, se usa el del tema. */
   background: hexColor.optional(),
+  /** Imagen de fondo opcional para la sección. */
+  backgroundImage: imageSrc.optional(),
+  /** Opacidad de la imagen de fondo (0-100). */
+  backgroundOpacity: z.number().min(0).max(100).default(100).optional(),
   /** Estilo propio de cada elemento de la sección. */
   styles: z.partialRecord(elementKey, elementStyleSchema).optional(),
   layout: sectionLayoutSchema.optional(),
+  shapes: z.array(shapeSchema).optional(),
 };
 
 export const headerSectionSchema = z.object({

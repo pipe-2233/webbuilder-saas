@@ -15,6 +15,8 @@ import { ElementInspector } from "./ElementInspector";
 import { ImageInput } from "./ImageInput";
 import { LayoutPanel } from "./LayoutPanel";
 import { ListEditor } from "./ListEditor";
+import { ShapeInspector } from "./ShapeInspector";
+import { SHAPE_LABELS } from "@/components/page-renderer/ShapeElement";
 
 type SectionInspectorProps = {
   section: Section | null;
@@ -22,6 +24,8 @@ type SectionInspectorProps = {
   selectedElement: ElementKey | null;
   /** Todos los elementos seleccionados (Mayús/Ctrl + clic). */
   selectedElements: ElementKey[];
+  /** Forma seleccionada. Mutuamente excluyente con selectedElement. */
+  selectedShapeId: string | null;
   theme: PageTheme;
   device: "desktop" | "mobile";
   dispatch: (action: EditorAction) => void;
@@ -38,6 +42,7 @@ export function SectionInspector({
   section,
   selectedElement,
   selectedElements,
+  selectedShapeId,
   theme,
   device,
   dispatch,
@@ -49,6 +54,20 @@ export function SectionInspector({
         Haz clic en una sección de la página para editarla.
       </div>
     );
+  }
+
+  if (selectedShapeId && section.shapes) {
+    const shape = section.shapes.find((s) => s.id === selectedShapeId);
+    if (shape) {
+      return (
+        <ShapeInspector
+          section={section}
+          shape={shape}
+          dispatch={dispatch}
+          onBack={() => dispatch({ type: "select", id: section.id })}
+        />
+      );
+    }
   }
 
   if (selectedElement) {
@@ -86,6 +105,48 @@ export function SectionInspector({
         onSelectElement={(key) => dispatch({ type: "selectElement", id: section.id, key })}
       />
 
+      <PanelGroup title="Formas decorativas">
+        {section.shapes && section.shapes.length > 0 && (
+          <div className="flex flex-col gap-2 mb-4">
+            {section.shapes.map((shape) => (
+              <button
+                key={shape.id}
+                type="button"
+                className="flex items-center gap-2 rounded border border-zinc-200 p-2 text-sm hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
+                onClick={() => dispatch({ type: "selectShape", id: section.id, shapeId: shape.id })}
+              >
+                <div 
+                  className="size-4 rounded-sm border border-zinc-300 dark:border-zinc-700" 
+                  style={{ backgroundColor: shape.color, borderRadius: shape.type === "circle" ? "50%" : shape.radius === "full" ? "9999px" : shape.radius === "small" ? "0.25rem" : "0" }}
+                />
+                <span className="flex-1 text-left">
+                  {SHAPE_LABELS[shape.type]}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => {
+            const newShape: import("@/lib/page-model/schema").Shape = {
+              id: `shape-${Date.now()}`,
+              type: "square",
+              color: theme.colors.text,
+              opacity: 50,
+              radius: "none",
+              position: { x: 10, y: 50, w: 20, h: 100 },
+              zIndex: 0,
+            };
+            dispatch({ type: "addShape", id: section.id, shape: newShape });
+            dispatch({ type: "selectShape", id: section.id, shapeId: newShape.id });
+          }}
+          className="w-full rounded border border-dashed border-zinc-300 py-2 text-sm text-zinc-600 hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
+        >
+          + Agregar forma
+        </button>
+      </PanelGroup>
+
       <PanelGroup title="Fondo">
         <ColorInput
           label="Color de fondo de la sección"
@@ -101,6 +162,28 @@ export function SectionInspector({
           >
             Usar el fondo del sitio
           </button>
+        )}
+        
+        <ImageInput 
+          label="Imagen de fondo" 
+          value={section.backgroundImage ?? ""} 
+          onChange={(url) => dispatch({ type: "setSectionBackgroundImage", id: section.id, url: url || undefined })} 
+        />
+        
+        {section.backgroundImage && (
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+              Opacidad de la imagen ({section.backgroundOpacity ?? 100}%)
+            </span>
+            <input 
+              type="range" 
+              min="0" 
+              max="100" 
+              value={section.backgroundOpacity ?? 100} 
+              onChange={(e) => dispatch({ type: "setSectionBackgroundOpacity", id: section.id, opacity: Number(e.target.value) })}
+              className="w-full accent-blue-600"
+            />
+          </div>
         )}
       </PanelGroup>
     </div>

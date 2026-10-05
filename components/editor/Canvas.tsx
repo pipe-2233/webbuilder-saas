@@ -21,6 +21,7 @@ type CanvasProps = {
   selectedId: string | null;
   selectedElement: ElementKey | null;
   selectedElements: ElementKey[];
+  selectedShapeId: string | null;
   device: Device;
   dispatch: (action: EditorAction) => void;
   /** Se hizo clic en una sección de la página. */
@@ -37,6 +38,7 @@ export function Canvas({
   selectedId,
   selectedElement,
   selectedElements,
+  selectedShapeId,
   device,
   dispatch,
   onSelectSection,
@@ -53,13 +55,15 @@ export function Canvas({
       selectedSectionId: selectedId,
       selectedElement,
       selectedElements,
+      selectedShapeId,
       device,
+      dispatch,
       setFreeLayout: (id, free) => dispatch({ type: "setFreeLayout", id, free }),
       setFreePositions: (id, positions, minHeight) =>
         dispatch({ type: "setFreePositions", id, positions, minHeight }),
       setFreeHeight: (id, height) => dispatch({ type: "setFreeHeight", id, height }),
     }),
-    [dispatch, onSelectElement, selectedId, selectedElement, selectedElements, device],
+    [dispatch, onSelectElement, selectedId, selectedElement, selectedElements, selectedShapeId, device],
   );
 
   const wrapSection = useCallback(

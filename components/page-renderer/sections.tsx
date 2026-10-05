@@ -1,8 +1,8 @@
-import { TEXT_LIMITS, type Alignment, type SectionOfType, type SectionType } from "@/lib/page-model/schema";
+import { TEXT_LIMITS, type Alignment, type SectionOfType, type SectionType, type Section } from "@/lib/page-model/schema";
 
 import { ShowWhenFilledOrEditing } from "./edit-context";
 import { EditableText } from "./EditableText";
-import { buttonStyle, imageStyle, textStyle } from "./element-style";
+import { buttonStyle, imageStyle, textStyle, boxStyle } from "./element-style";
 import { ElementsContainer, PageElement } from "./PageElement";
 import { PageLink } from "./PageLink";
 import { SectionShell } from "./SectionShell";
@@ -28,7 +28,7 @@ export function HeaderSection({ section }: Props<"header">) {
   const { logoText, links } = section.props;
   const styles = section.styles;
   return (
-    <SectionShell id={section.id} background={section.background} className="py-5">
+    <SectionShell section={section} className="py-5">
       <nav className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3">
         <EditableText
           sectionId={section.id}
@@ -82,7 +82,7 @@ export function HeroSection({ section }: Props<"hero">) {
       }`;
 
   return (
-    <SectionShell id={section.id} background={section.background}>
+    <SectionShell section={section}>
       <ElementsContainer section={section} className={containerClass}>
         <PageElement section={section} elementKey="title" flow={flow} className={textColumn}>
           <EditableText
@@ -164,7 +164,7 @@ export function TextSection({ section }: Props<"text">) {
   const { title, body, align } = section.props;
   const styles = section.styles;
   return (
-    <SectionShell id={section.id} background={section.background}>
+    <SectionShell section={section}>
       <ElementsContainer
         section={section}
         className={`mx-auto flex max-w-3xl flex-col gap-4 ${TEXT_ALIGN[align]} ${FLEX_ALIGN[align]}`}
@@ -209,7 +209,7 @@ export function ImageSection({ section }: Props<"image">) {
   const { src, alt, caption } = section.props;
   const styles = section.styles;
   return (
-    <SectionShell id={section.id} background={section.background}>
+    <SectionShell section={section}>
       <ElementsContainer section={section} className="flex flex-col items-center gap-3">
         <PageElement section={section} elementKey="image" className="w-full">
           {src ? (
@@ -253,7 +253,7 @@ export function FeaturesSection({ section }: Props<"features">) {
   const { title, items } = section.props;
   const styles = section.styles;
   return (
-    <SectionShell id={section.id} background={section.background}>
+    <SectionShell section={section}>
       <div className="flex flex-col gap-10">
         <EditableText
           sectionId={section.id}
@@ -310,7 +310,7 @@ export function FooterSection({ section }: Props<"footer">) {
   const { text, links } = section.props;
   const styles = section.styles;
   return (
-    <SectionShell id={section.id} background={section.background} className="py-10">
+    <SectionShell section={section} className="py-10">
       <div
         className={`${muted} flex flex-col items-center justify-between gap-4 border-t border-(--page-muted)/25 pt-8 text-sm @2xl:flex-row`}
       >

@@ -1,22 +1,32 @@
 import type { ReactNode } from "react";
+import type { Section } from "@/lib/page-model/schema";
 
 type SectionShellProps = {
-  id: string;
-  /** Color de fondo propio de la sección; si no hay, se ve el del tema. */
-  background?: string;
+  section: Section;
   className?: string;
   children: ReactNode;
 };
 
 /** Envoltorio común: fondo, espaciado y ancho máximo del contenido. */
-export function SectionShell({ id, background, className, children }: SectionShellProps) {
+export function SectionShell({ section, className, children }: SectionShellProps) {
+  const { id, background, backgroundImage, backgroundOpacity } = section;
+  const opacity = backgroundOpacity !== undefined ? backgroundOpacity / 100 : 1;
   return (
     <section
       data-section-id={id}
       style={background ? { backgroundColor: background } : undefined}
-      className={`px-6 @3xl:px-10 ${className ?? "py-16 @3xl:py-24"}`}
+      className={`relative overflow-hidden px-6 @3xl:px-10 ${className ?? "py-16 @3xl:py-24"}`}
     >
-      <div className="mx-auto w-full max-w-5xl">{children}</div>
+      {backgroundImage && (
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat z-0"
+          style={{ 
+            backgroundImage: `url(${backgroundImage})`,
+            opacity
+          }}
+        />
+      )}
+      <div className="relative z-10 mx-auto w-full max-w-5xl">{children}</div>
     </section>
   );
 }

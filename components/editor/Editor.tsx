@@ -306,6 +306,7 @@ export function Editor({ projectId, userId, projectName, initialDocument }: Edit
                     section={selectedSection}
                     selectedElement={selectedElement}
                     selectedElements={selectedElements}
+                    selectedShapeId={state.selectedShapeId}
                     theme={document.theme}
                     device={device}
                     dispatch={dispatch}
@@ -328,6 +329,7 @@ export function Editor({ projectId, userId, projectName, initialDocument }: Edit
                 selectedId={selectedId}
                 selectedElement={selectedElement}
                 selectedElements={selectedElements}
+                selectedShapeId={state.selectedShapeId}
                 device={device}
                 dispatch={dispatch}
                 onSelectSection={selectFromCanvas}

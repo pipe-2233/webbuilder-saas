@@ -28,6 +28,8 @@ export type EditorState = {
    * añadir). El principal (`selectedElement`) es el último que se seleccionó.
    */
   selectedElements: ElementKey[];
+  /** ID de la forma decorativa seleccionada, si hay. Mutuamente excluyente con selectedElement. */
+  selectedShapeId: string | null;
   /** Hay cambios que todavía no se han guardado. */
   dirty: boolean;
   /** Aumenta con cada cambio del documento. */
@@ -49,6 +51,8 @@ export type EditorAction =
   | { type: "updateSectionField"; id: string; path: Path; value: unknown }
   /** Color de fondo propio de una sección; `undefined` vuelve al del tema. */
   | { type: "setSectionBackground"; id: string; color: string | undefined }
+  | { type: "setSectionBackgroundImage"; id: string; url: string | undefined }
+  | { type: "setSectionBackgroundOpacity"; id: string; opacity: number | undefined }
   /** Cambia un valor del tema (p. ej. ["colors", "primary"] o ["fonts", "heading"]). */
   | { type: "updateTheme"; path: Path; value: unknown }
   /**
@@ -71,7 +75,12 @@ export type EditorAction =
   /** Mueve varios elementos a la vez (arrastrar un grupo, alinear, distribuir). */
   | { type: "setFreePositions"; id: string; positions: Partial<Record<ElementKey, FreePosition>>; minHeight?: number }
   /** Alto de la zona de contenido en posición libre. */
-  | { type: "setFreeHeight"; id: string; height: number };
+  | { type: "setFreeHeight"; id: string; height: number }
+  /** Gestón de formas (shapes) */
+  | { type: "addShape"; id: string; shape: import("@/lib/page-model/schema").Shape }
+  | { type: "updateShape"; id: string; shapeId: string; patch: Partial<import("@/lib/page-model/schema").Shape> }
+  | { type: "removeShape"; id: string; shapeId: string }
+  | { type: "selectShape"; id: string; shapeId: string | null };
 
 export function createEditorState(document: PageDocument): EditorState {
   return {
@@ -79,6 +88,7 @@ export function createEditorState(document: PageDocument): EditorState {
     selectedId: null,
     selectedElement: null,
     selectedElements: [],
+    selectedShapeId: null,
     dirty: false,
     revision: 0,
     savedRevision: 0,
@@ -95,8 +105,8 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
   switch (action.type) {
     case "select": {
       if (action.id !== null && !sections.some((s) => s.id === action.id)) return state;
-      if (action.id === state.selectedId && state.selectedElements.length === 0) return state;
-      return { ...state, selectedId: action.id, selectedElement: null, selectedElements: [] };
+      if (action.id === state.selectedId && state.selectedElements.length === 0 && state.selectedShapeId === null) return state;
+      return { ...state, selectedId: action.id, selectedElement: null, selectedElements: [], selectedShapeId: null };
     }
 
     case "selectElement": {
@@ -121,7 +131,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       ) {
         return state;
       }
-      return { ...state, selectedId: action.id, selectedElement: primary, selectedElements: selected };
+      return { ...state, selectedId: action.id, selectedElement: primary, selectedElements: selected, selectedShapeId: null };
     }
 
     case "updateElementStyle":
@@ -205,6 +215,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         ...withSections(state, next, selectedId),
         selectedElement: keepElements ? state.selectedElement : null,
         selectedElements: keepElements ? state.selectedElements : [],
+        selectedShapeId: keepElements ? state.selectedShapeId : null,
       };
     }
 
@@ -244,6 +255,24 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         return next;
       });
 
+    case "setSectionBackgroundImage":
+      return updateSection(state, action.id, (section) => {
+        if (section.backgroundImage === action.url) return section;
+        const next = { ...section };
+        if (action.url) next.backgroundImage = action.url;
+        else delete next.backgroundImage;
+        return next;
+      });
+
+    case "setSectionBackgroundOpacity":
+      return updateSection(state, action.id, (section) => {
+        if (section.backgroundOpacity === action.opacity) return section;
+        const next = { ...section };
+        if (action.opacity !== undefined) next.backgroundOpacity = action.opacity;
+        else delete next.backgroundOpacity;
+        return next;
+      });
+
     case "updateTheme": {
       const theme = setIn(state.document.theme, action.path, action.value);
       if (theme === state.document.theme) return state;
@@ -253,6 +282,51 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
     case "markSaved": {
       const savedRevision = Math.max(state.savedRevision, action.revision);
       return { ...state, savedRevision, dirty: state.revision !== savedRevision };
+    }
+
+    case "selectShape": {
+      if (action.id === state.selectedId && action.shapeId === state.selectedShapeId) return state;
+      return { 
+        ...state, 
+        selectedId: action.id, 
+        selectedElement: null, 
+        selectedElements: [], 
+        selectedShapeId: action.shapeId 
+      };
+    }
+
+    case "addShape":
+      return updateSection(state, action.id, (section) => {
+        const shapes = [...(section.shapes ?? []), action.shape];
+        return { ...section, shapes };
+      });
+
+    case "updateShape":
+      return updateSection(state, action.id, (section) => {
+        if (!section.shapes) return section;
+        const index = section.shapes.findIndex((s) => s.id === action.shapeId);
+        if (index === -1) return section;
+        const current = section.shapes[index];
+        const next = { ...current, ...action.patch };
+        if (shallowEqual(current, next)) return section;
+        const shapes = [...section.shapes];
+        shapes[index] = next;
+        return { ...section, shapes };
+      });
+
+    case "removeShape": {
+      const nextState = updateSection(state, action.id, (section) => {
+        if (!section.shapes) return section;
+        const shapes = section.shapes.filter((s) => s.id !== action.shapeId);
+        if (shapes.length === section.shapes.length) return section;
+        const nextSection = { ...section, shapes };
+        if (shapes.length === 0) delete nextSection.shapes;
+        return nextSection;
+      });
+      if (nextState.selectedShapeId === action.shapeId) {
+        return { ...nextState, selectedShapeId: null };
+      }
+      return nextState;
     }
   }
 }

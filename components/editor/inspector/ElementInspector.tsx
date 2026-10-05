@@ -198,6 +198,20 @@ export function ElementInspector({
         )}
       </PanelGroup>
 
+      <PanelGroup title="Animación (Scroll)">
+        <Segmented<ElementStyle["animation"] | "auto">
+          label="Efecto de Entrada"
+          value={style.animation ?? "auto"}
+          options={[
+            { value: "auto", label: "Ninguno" },
+            { value: "fade-in", label: "Fade" },
+            { value: "slide-up", label: "Subir" },
+            { value: "slide-right", label: "Lado" },
+            { value: "zoom-in", label: "Zoom" },
+          ]}
+          onChange={(animation) => set({ animation: animation === "auto" ? undefined : animation })}
+        />
+      </PanelGroup>
       {hasStyle && (
         <button
           type="button"
