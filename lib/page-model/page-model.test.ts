@@ -100,6 +100,40 @@ describe("alineación", () => {
   });
 });
 
+describe("formas decorativas", () => {
+  const shape = {
+    id: "s1",
+    type: "circle",
+    color: "#ff0000",
+    opacity: 50,
+    position: { x: 10, y: 10, w: 20, h: 80 },
+    zIndex: 0,
+  };
+  function withShapes(shapes: unknown[]) {
+    const doc = asJson(validDoc()) as { sections: { shapes?: unknown[] }[] };
+    doc.sections[1].shapes = shapes;
+    return parsePageDocument(doc);
+  }
+
+  it("acepta una forma válida", () => {
+    expect(withShapes([shape]).success).toBe(true);
+  });
+
+  it("rechaza más de 30 formas en una sección", () => {
+    expect(withShapes(Array.from({ length: 31 }, (_, i) => ({ ...shape, id: `s${i}` }))).success).toBe(false);
+  });
+
+  it.each([
+    ["sin id", { id: "" }],
+    ["giro fuera de rango", { rotation: 1000 }],
+    ["capa fuera de rango", { zIndex: 999 }],
+    ["borde enorme", { borderWidth: 500 }],
+    ["tipo desconocido", { type: "dragon" }],
+  ])("rechaza una forma %s", (_name, patch) => {
+    expect(withShapes([{ ...shape, ...patch }]).success).toBe(false);
+  });
+});
+
 describe("seguridad de enlaces e imágenes", () => {
   function withHeroButton(buttonHref: string) {
     const doc = validDoc();

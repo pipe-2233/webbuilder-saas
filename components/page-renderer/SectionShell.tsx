@@ -21,7 +21,8 @@ export function SectionShell({ section, className, children }: SectionShellProps
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat z-0"
           style={{ 
-            backgroundImage: `url(${backgroundImage})`,
+            // Entre comillas: una dirección con paréntesis o espacios no rompe el CSS.
+            backgroundImage: `url("${encodeURI(backgroundImage)}")`,
             opacity
           }}
         />

@@ -199,7 +199,7 @@ export function ElementInspector({
       </PanelGroup>
 
       <PanelGroup title="Animación (Scroll)">
-        <Segmented<ElementStyle["animation"] | "auto">
+        <Segmented<NonNullable<ElementStyle["animation"]> | "auto">
           label="Efecto de Entrada"
           value={style.animation ?? "auto"}
           options={[

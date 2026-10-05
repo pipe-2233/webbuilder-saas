@@ -319,8 +319,9 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         if (!section.shapes) return section;
         const shapes = section.shapes.filter((s) => s.id !== action.shapeId);
         if (shapes.length === section.shapes.length) return section;
-        const nextSection = { ...section, shapes };
+        const nextSection: Section = { ...section };
         if (shapes.length === 0) delete nextSection.shapes;
+        else nextSection.shapes = shapes;
         return nextSection;
       });
       if (nextState.selectedShapeId === action.shapeId) {

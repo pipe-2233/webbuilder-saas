@@ -76,6 +76,7 @@ export function ShapeInspector({ section, shape, dispatch, onBack }: ShapeInspec
               value={shape.customPath || ""}
               onChange={(customPath) => set({ customPath })}
               placeholder="M 0 0 L 100 0 L 50 100 Z"
+              maxLength={2000}
             />
           </div>
         )}
@@ -118,7 +119,7 @@ export function ShapeInspector({ section, shape, dispatch, onBack }: ShapeInspec
 
         {shape.type === "square" && (
           <div className="mt-4">
-            <Segmented<Shape["radius"]>
+            <Segmented<NonNullable<Shape["radius"]>>
               label="Esquinas"
               value={shape.radius ?? "none"}
               options={[
@@ -148,7 +149,7 @@ export function ShapeInspector({ section, shape, dispatch, onBack }: ShapeInspec
         </div>
 
         <div className="mt-4">
-          <Segmented<Shape["shadow"]>
+          <Segmented<NonNullable<Shape["shadow"]>>
             label="Sombra Paralela"
             value={shape.shadow ?? "none"}
             options={[

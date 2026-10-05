@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { Move } from "lucide-react";
 import {
@@ -118,7 +118,9 @@ export function ShapeElement({ section, shape }: ShapeElementProps) {
     return <div style={css} className={baseClasses}>{svgContent}</div>;
   }
 
-  const selected = edit.selectedShapeId === shape.id;
+  // Las funciones de abajo se declaran después de comprobar que hay editor.
+  const editor = edit;
+  const selected = editor.selectedShapeId === shape.id;
   const isPrimary = selected;
   const canMove = selected;
 
@@ -127,7 +129,7 @@ export function ShapeElement({ section, shape }: ShapeElementProps) {
   }
 
   function apply(newPos: FreePosition) {
-    edit.dispatch({
+    editor.dispatch({
       type: "updateShape",
       id: section.id,
       shapeId: shape.id,
@@ -135,7 +137,7 @@ export function ShapeElement({ section, shape }: ShapeElementProps) {
     });
     const bottom = newPos.y + (newPos.h ?? 0);
     if (section.layout?.free && bottom + 16 > section.layout.free.height) {
-      edit.setFreeHeight(section.id, bottom + 16);
+      editor.setFreeHeight(section.id, bottom + 16);
     }
   }
 
@@ -198,7 +200,7 @@ export function ShapeElement({ section, shape }: ShapeElementProps) {
       tabIndex={-1}
       onClick={(e) => {
         e.stopPropagation();
-        edit.dispatch({ type: "selectShape", id: section.id, shapeId: shape.id });
+        editor.dispatch({ type: "selectShape", id: section.id, shapeId: shape.id });
       }}
       onKeyDown={onKeyDown}
     >

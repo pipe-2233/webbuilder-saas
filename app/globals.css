@@ -65,6 +65,29 @@ body {
   opacity: 0 !important;
 }
 
+/*
+ * Accesibilidad y robustez de las animaciones de entrada:
+ * - Sin JavaScript, el contenido nunca debe quedar invisible.
+ * - Con "reducir movimiento" activado en el sistema, se muestra sin animar.
+ */
+@media (scripting: none) {
+  .reveal-hidden {
+    opacity: 1 !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal-hidden {
+    opacity: 1 !important;
+  }
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-slide-right,
+  .animate-zoom-in {
+    animation: none;
+    opacity: 1;
+  }
+}
+
 .animate-fade-in {
   animation: fade-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }

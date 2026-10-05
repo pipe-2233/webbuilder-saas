@@ -1,8 +1,8 @@
-import { TEXT_LIMITS, type Alignment, type SectionOfType, type SectionType, type Section } from "@/lib/page-model/schema";
+import { TEXT_LIMITS, type Alignment, type SectionOfType, type SectionType } from "@/lib/page-model/schema";
 
 import { ShowWhenFilledOrEditing } from "./edit-context";
 import { EditableText } from "./EditableText";
-import { buttonStyle, imageStyle, textStyle, boxStyle } from "./element-style";
+import { buttonStyle, imageStyle, textStyle } from "./element-style";
 import { ElementsContainer, PageElement } from "./PageElement";
 import { PageLink } from "./PageLink";
 import { SectionShell } from "./SectionShell";

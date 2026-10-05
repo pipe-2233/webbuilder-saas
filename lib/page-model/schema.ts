@@ -164,22 +164,25 @@ export const sectionLayoutSchema = z.object({
     .optional(),
 });
 
+export const LIMITS_SHAPES = 30;
+
 export const shapeSchema = z.object({
-  id: z.string(),
+  id,
   type: z.enum(["square", "circle", "pill", "triangle", "star", "hexagon", "arrow", "ring", "arch", "custom"]),
   color: hexColor,
   opacity: z.number().min(0).max(100).default(50),
   radius: z.enum(RADIUS_KEYS).optional(), // Solo square
   position: freePositionSchema, // x, y, w, h
-  zIndex: z.number().default(0),
-  rotation: z.number().default(0).optional(),
-  borderWidth: z.number().default(0).optional(),
+  zIndex: z.number().int().min(-10).max(50).default(0),
+  rotation: z.number().min(-360).max(360).default(0).optional(),
+  borderWidth: z.number().min(0).max(50).default(0).optional(),
   borderColor: hexColor.optional(),
   customPath: z.string().max(2000).optional(),
   blur: z.number().min(0).max(50).optional(),
   shadow: z.enum(["none", "sm", "md", "lg", "xl"]).optional(),
 });
 export type Shape = z.infer<typeof shapeSchema>;
+export type ShapeType = Shape["type"];
 
 /** Campos comunes a todas las secciones. */
 const sectionBase = {
@@ -193,7 +196,8 @@ const sectionBase = {
   /** Estilo propio de cada elemento de la sección. */
   styles: z.partialRecord(elementKey, elementStyleSchema).optional(),
   layout: sectionLayoutSchema.optional(),
-  shapes: z.array(shapeSchema).optional(),
+  /** Formas decorativas (máximo 30 por sección). */
+  shapes: z.array(shapeSchema).max(LIMITS_SHAPES).optional(),
 };
 
 export const headerSectionSchema = z.object({
