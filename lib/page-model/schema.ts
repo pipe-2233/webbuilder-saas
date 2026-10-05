@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { ENTRANCE_KEYS, HOVER_KEYS, LOOP_KEYS } from "./animations";
+import { BUTTON_ICON_KEYS } from "./icons";
 import { ELEMENT_KEYS, ELEMENT_WIDTH_KEYS, RADIUS_KEYS, TEXT_SIZE_KEYS } from "./elements";
 
 /**
@@ -29,6 +30,7 @@ export const TEXT_LIMITS = {
   logoText: 60,
   linkLabel: 40,
   heroTitle: 120,
+  eyebrow: 80,
   heroSubtitle: 300,
   buttonLabel: 40,
   sectionTitle: 120,
@@ -201,6 +203,10 @@ const sectionBase = {
   backgroundImage: imageSrc.optional(),
   /** Opacidad de la imagen de fondo (0-100). */
   backgroundOpacity: z.number().min(0).max(100).default(100).optional(),
+  /** Capa oscura sobre la imagen de fondo (0-90 %), para que el texto se lea. */
+  backgroundOverlay: z.number().min(0).max(90).optional(),
+  /** Texto claro (blanco) en la sección, para fondos oscuros o con foto. */
+  lightText: z.boolean().optional(),
   /** Estilo propio de cada elemento de la sección. */
   styles: z.partialRecord(elementKey, elementStyleSchema).optional(),
   layout: sectionLayoutSchema.optional(),
@@ -221,10 +227,19 @@ export const heroSectionSchema = z.object({
   ...sectionBase,
   type: z.literal("hero"),
   props: z.object({
+    /** Texto pequeño sobre el título (p. ej. "TULUÁ · VALLE DEL CAUCA"). */
+    eyebrow: text(TEXT_LIMITS.eyebrow).default(""),
     title: requiredText(TEXT_LIMITS.heroTitle),
+    /** Palabras del título que se pintan con el color principal. */
+    highlight: text(TEXT_LIMITS.heroTitle).default(""),
     subtitle: text(TEXT_LIMITS.heroSubtitle),
     buttonLabel: text(TEXT_LIMITS.buttonLabel),
     buttonHref: optionalHref,
+    buttonIcon: z.enum(BUTTON_ICON_KEYS).default("none"),
+    /** Segundo botón (con borde). Vacío = no se muestra. */
+    secondaryLabel: text(TEXT_LIMITS.buttonLabel).default(""),
+    secondaryHref: optionalHref.default(""),
+    secondaryIcon: z.enum(BUTTON_ICON_KEYS).default("none"),
     imageUrl: imageSrc,
     /** Posición del contenido; con imagen, la imagen va al lado contrario. */
     align,

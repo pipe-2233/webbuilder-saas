@@ -64,6 +64,8 @@ type BaseEditorAction =
   | { type: "setSectionBackground"; id: string; color: string | undefined }
   | { type: "setSectionBackgroundImage"; id: string; url: string | undefined }
   | { type: "setSectionBackgroundOpacity"; id: string; opacity: number | undefined }
+  /** Capa oscura sobre la foto de fondo y texto claro de una sección. */
+  | { type: "updateSectionAppearance"; id: string; patch: { backgroundOverlay?: number; lightText?: boolean } }
   /** Cambia un valor del tema (p. ej. ["colors", "primary"] o ["fonts", "heading"]). */
   | { type: "updateTheme"; path: Path; value: unknown }
   /**
@@ -170,6 +172,7 @@ function autoGroup(action: BaseEditorAction): string | null {
       return `style:${action.id}:${action.key}:${Object.keys(action.patch).sort().join(",")}`;
     case "setSectionBackground":
     case "setSectionBackgroundOpacity":
+    case "updateSectionAppearance":
       return `background:${action.id}`;
     case "updateShape":
       return `shape:${action.id}:${action.shapeId}:${Object.keys(action.patch).sort().join(",")}`;
@@ -208,6 +211,20 @@ function applyAction(state: EditorState, action: BaseEditorAction): EditorState 
   const { sections } = state.document;
 
   switch (action.type) {
+    case "updateSectionAppearance":
+      return updateSection(state, action.id, (section) => {
+        const next: Section = { ...section };
+        let changed = false;
+        for (const [key, value] of Object.entries(action.patch) as ["backgroundOverlay" | "lightText", number | boolean | undefined][]) {
+          if (next[key] === value) continue;
+          changed = true;
+          // 0 / false / undefined: se quita el campo para no guardar valores vacíos.
+          if (value === undefined || value === 0 || value === false) delete next[key];
+          else (next as Record<string, unknown>)[key] = value;
+        }
+        return changed ? next : section;
+      });
+
     case "duplicateSection": {
       const index = sections.findIndex((s) => s.id === action.id);
       if (index === -1 || !canAddSection(state)) return state;

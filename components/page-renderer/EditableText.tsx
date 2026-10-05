@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef, type CSSProperties, type KeyboardEvent, type S
 
 import type { Path } from "@/lib/editor/set-in";
 import type { ElementKey } from "@/lib/page-model/elements";
+import { splitHighlight } from "@/lib/page-model/highlight";
 
 import { usePageEdit } from "./edit-context";
 
@@ -27,7 +28,11 @@ type EditableTextProps = {
   style?: CSSProperties;
   /** Elemento al que pertenece; al hacer clic se selecciona en el editor. */
   elementKey?: ElementKey;
+  /** Frase del texto que se pinta con el color principal. */
+  highlight?: string;
 };
+
+const HIGHLIGHT_CLASS = "text-(--page-primary)";
 
 /**
  * Texto de la página.
@@ -36,13 +41,21 @@ type EditableTextProps = {
  */
 export function EditableText(props: EditableTextProps) {
   const edit = usePageEdit();
-  const { as: Component = "span", value, className, style, sectionId, elementKey } = props;
+  const { as: Component = "span", value, className, style, sectionId, elementKey, highlight = "" } = props;
 
   if (!edit) {
     if (!value) return null;
     return (
       <Component className={className} style={style}>
-        {value}
+        {splitHighlight(value, highlight).map((part, index) =>
+          part.highlight ? (
+            <span key={index} className={HIGHLIGHT_CLASS}>
+              {part.text}
+            </span>
+          ) : (
+            part.text
+          ),
+        )}
       </Component>
     );
   }
@@ -64,6 +77,7 @@ function InlineEditor({
   multiline = false,
   required = false,
   style,
+  highlight = "",
   onChange,
   onSelect,
 }: EditableTextProps & { onChange: (value: string) => void; onSelect?: (additive: boolean) => void }) {
@@ -75,10 +89,8 @@ function InlineEditor({
   // desde el panel lateral.
   useLayoutEffect(() => {
     const element = ref.current;
-    if (element && document.activeElement !== element && readText(element) !== value) {
-      element.textContent = value;
-    }
-  }, [value]);
+    if (element && document.activeElement !== element) paint(element, value, highlight);
+  }, [value, highlight]);
 
   function handleInput() {
     const element = ref.current;
@@ -98,10 +110,12 @@ function InlineEditor({
     if (!element) return;
     const text = readText(element).trim();
     if (required && !text) {
-      element.textContent = valueOnFocus.current;
+      paint(element, valueOnFocus.current, highlight);
       onChange(valueOnFocus.current);
-    } else if (text !== readText(element)) {
-      onChange(text);
+    } else {
+      if (text !== readText(element)) onChange(text);
+      // Al terminar de escribir se vuelve a pintar el resaltado.
+      paint(element, text, highlight);
     }
   }
 
@@ -143,6 +157,33 @@ function InlineEditor({
       style={style}
       className={`${className ?? ""} ${multiline ? "whitespace-pre-wrap" : ""} min-w-8 cursor-text rounded-sm outline-none hover:bg-blue-500/5 focus:bg-white/60 focus:ring-2 focus:ring-blue-400/70 empty:before:pointer-events-none empty:before:opacity-40 empty:before:content-[attr(data-placeholder)]`}
     />
+  );
+}
+
+/**
+ * Escribe el texto en el elemento, con la frase resaltada en su propio span.
+ * Se usa la API del DOM (no HTML) para que ningún texto se interprete como código.
+ */
+function paint(element: HTMLElement, value: string, highlight: string) {
+  const parts = splitHighlight(value, highlight);
+  const current = [...element.childNodes];
+  const same =
+    current.length === parts.length &&
+    parts.every((part, i) => {
+      const node = current[i];
+      return part.highlight
+        ? node instanceof HTMLSpanElement && node.textContent === part.text
+        : node.nodeType === Node.TEXT_NODE && node.textContent === part.text;
+    });
+  if (same) return;
+  element.replaceChildren(
+    ...parts.map((part) => {
+      if (!part.highlight) return document.createTextNode(part.text);
+      const span = document.createElement("span");
+      span.className = HIGHLIGHT_CLASS;
+      span.textContent = part.text;
+      return span;
+    }),
   );
 }
 

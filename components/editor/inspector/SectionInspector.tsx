@@ -7,6 +7,7 @@ import type { EditorAction } from "@/lib/editor/reducer";
 import type { Path } from "@/lib/editor/set-in";
 import { createFeatureItem, createNavLink } from "@/lib/page-model/defaults";
 import type { ElementKey } from "@/lib/page-model/elements";
+import { BUTTON_ICON_KEYS, BUTTON_ICONS, type ButtonIcon } from "@/lib/page-model/icons";
 import { SECTION_INFO } from "@/lib/page-model/section-info";
 import { LIMITS, TEXT_LIMITS, type Alignment, type NavLink, type PageTheme, type Section } from "@/lib/page-model/schema";
 
@@ -185,6 +186,43 @@ export function SectionInspector({
             />
           </div>
         )}
+
+        {section.backgroundImage && (
+          <div className="flex flex-col gap-1">
+            <label htmlFor="bg-overlay" className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+              Oscurecer la foto ({section.backgroundOverlay ?? 0}%)
+            </label>
+            <input
+              id="bg-overlay"
+              type="range"
+              min="0"
+              max="90"
+              step="5"
+              value={section.backgroundOverlay ?? 0}
+              onChange={(e) =>
+                dispatch({
+                  type: "updateSectionAppearance",
+                  id: section.id,
+                  patch: { backgroundOverlay: Number(e.target.value) },
+                })
+              }
+              className="w-full accent-blue-600"
+            />
+            <p className="text-xs text-zinc-500">Una capa oscura sobre la foto hace que el texto se lea mejor.</p>
+          </div>
+        )}
+
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={section.lightText ?? false}
+            onChange={(e) =>
+              dispatch({ type: "updateSectionAppearance", id: section.id, patch: { lightText: e.target.checked } })
+            }
+            className="size-4 accent-blue-600"
+          />
+          Texto claro (para fondos oscuros o con foto)
+        </label>
       </PanelGroup>
     </div>
   );
@@ -215,11 +253,27 @@ function SectionFields({ section, set }: { section: Section; set: (path: Path, v
         <>
           <PanelGroup title="Contenido">
             <TextInput
+              label="Antetítulo"
+              value={section.props.eyebrow}
+              onChange={(v) => set(["eyebrow"], v)}
+              maxLength={TEXT_LIMITS.eyebrow}
+              placeholder="TULUÁ · VALLE DEL CAUCA"
+              hint="Texto pequeño sobre el título. Déjalo vacío para no mostrarlo."
+            />
+            <TextInput
               label="Título"
               value={section.props.title}
               onChange={(v) => set(["title"], v)}
               maxLength={TEXT_LIMITS.heroTitle}
               required
+            />
+            <TextInput
+              label="Palabras resaltadas del título"
+              value={section.props.highlight}
+              onChange={(v) => set(["highlight"], v)}
+              maxLength={TEXT_LIMITS.heroTitle}
+              placeholder="a minutos"
+              hint="Escribe una parte del título para pintarla con el color principal."
             />
             <TextInput
               label="Subtítulo"
@@ -229,7 +283,7 @@ function SectionFields({ section, set }: { section: Section; set: (path: Path, v
               multiline
             />
           </PanelGroup>
-          <PanelGroup title="Botón">
+          <PanelGroup title="Botón principal">
             <TextInput
               label="Texto del botón"
               value={section.props.buttonLabel}
@@ -243,6 +297,32 @@ function SectionFields({ section, set }: { section: Section; set: (path: Path, v
               onChange={(v) => set(["buttonHref"], v)}
               optional
             />
+            <IconSelect label="Icono" value={section.props.buttonIcon} onChange={(v) => set(["buttonIcon"], v)} />
+          </PanelGroup>
+          <PanelGroup title="Segundo botón (con borde)">
+            <TextInput
+              label="Texto"
+              value={section.props.secondaryLabel}
+              onChange={(v) => set(["secondaryLabel"], v)}
+              maxLength={TEXT_LIMITS.buttonLabel}
+              placeholder="Ver proyectos"
+              hint="Déjalo vacío para no mostrarlo."
+            />
+            {section.props.secondaryLabel && (
+              <>
+                <LinkInput
+                  label="Al pulsarlo, ir a"
+                  value={section.props.secondaryHref}
+                  onChange={(v) => set(["secondaryHref"], v)}
+                  optional
+                />
+                <IconSelect
+                  label="Icono"
+                  value={section.props.secondaryIcon}
+                  onChange={(v) => set(["secondaryIcon"], v)}
+                />
+              </>
+            )}
           </PanelGroup>
           <PanelGroup title="Posición">
             <Segmented
@@ -385,5 +465,37 @@ function LinksEditor({ links, onChange }: { links: NavLink[]; onChange: (links: 
         </>
       )}
     />
+  );
+}
+
+/** Selector del icono de un botón. */
+function IconSelect({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: ButtonIcon;
+  onChange: (icon: ButtonIcon) => void;
+}) {
+  const id = `icon-${label}`;
+  return (
+    <div className="flex flex-col gap-1">
+      <label htmlFor={id} className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+        {label}
+      </label>
+      <select
+        id={id}
+        value={value}
+        onChange={(event) => onChange(event.target.value as ButtonIcon)}
+        className="w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm outline-none focus:border-blue-500 dark:border-zinc-700 dark:bg-zinc-900"
+      >
+        {BUTTON_ICON_KEYS.map((key) => (
+          <option key={key} value={key}>
+            {BUTTON_ICONS[key]}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }

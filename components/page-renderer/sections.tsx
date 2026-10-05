@@ -3,6 +3,7 @@ import { TEXT_LIMITS, type Alignment, type SectionOfType, type SectionType } fro
 import { ShowWhenFilledOrEditing } from "./edit-context";
 import { EditableText } from "./EditableText";
 import { buttonStyle, imageStyle, textStyle } from "./element-style";
+import { ButtonIconView } from "./icons";
 import { ElementsContainer, PageElement } from "./PageElement";
 import { PageLink } from "./PageLink";
 import { SectionShell } from "./SectionShell";
@@ -76,7 +77,20 @@ export function HeaderSection({ section }: Props<"header">) {
 }
 
 export function HeroSection({ section }: Props<"hero">) {
-  const { title, subtitle, buttonLabel, buttonHref, imageUrl, align } = section.props;
+  const {
+    eyebrow,
+    title,
+    highlight,
+    subtitle,
+    buttonLabel,
+    buttonHref,
+    buttonIcon,
+    secondaryLabel,
+    secondaryHref,
+    secondaryIcon,
+    imageUrl,
+    align,
+  } = section.props;
   const styles = section.styles;
   const hasImage = Boolean(imageUrl);
   // Con imagen a un lado: dos columnas (texto | imagen). Si no, una columna.
@@ -93,12 +107,29 @@ export function HeroSection({ section }: Props<"hero">) {
   return (
     <SectionShell section={section}>
       <ElementsContainer section={section} className={containerClass}>
+        <ShowWhenFilledOrEditing value={eyebrow}>
+          <PageElement section={section} elementKey="eyebrow" flow={flow} className={textColumn}>
+            {/* Línea corta + texto pequeño en mayúsculas sobre el título. */}
+            <p className="inline-flex items-center gap-3 text-sm font-semibold tracking-[0.2em] text-(--page-primary) uppercase before:h-px before:w-8 before:shrink-0 before:bg-current">
+              <EditableText
+                sectionId={section.id}
+                elementKey="eyebrow"
+                path={["eyebrow"]}
+                value={eyebrow}
+                style={textStyle(styles?.eyebrow)}
+                maxLength={TEXT_LIMITS.eyebrow}
+                placeholder="Antetítulo (opcional)"
+              />
+            </p>
+          </PageElement>
+        </ShowWhenFilledOrEditing>
         <PageElement section={section} elementKey="title" flow={flow} className={textColumn}>
           <EditableText
             sectionId={section.id}
             elementKey="title"
             path={["title"]}
             value={title}
+            highlight={highlight}
             as="h1"
             className={`${heading} block text-4xl leading-tight @3xl:text-5xl`}
             style={textStyle(styles?.title)}
@@ -125,20 +156,40 @@ export function HeroSection({ section }: Props<"hero">) {
         {/* Sin texto no hay botón en la página publicada; en el editor se muestra para poder escribirlo. */}
         <ShowWhenFilledOrEditing value={buttonLabel}>
           <PageElement section={section} elementKey="button" flow={flow} className={textColumn}>
-            <PageLink
-              href={buttonHref || "#"}
-              className="inline-flex min-h-12 items-center justify-center rounded-full bg-(--page-primary) px-6 py-2 font-semibold text-(--page-on-primary) transition-opacity hover:opacity-90"
-              style={buttonStyle(styles?.button)}
-            >
-              <EditableText
-                sectionId={section.id}
-                elementKey="button"
-                path={["buttonLabel"]}
-                value={buttonLabel}
-                maxLength={TEXT_LIMITS.buttonLabel}
-                placeholder="Texto del botón"
-              />
-            </PageLink>
+            <div className={`flex flex-wrap gap-3 ${align === "center" ? "justify-center" : align === "right" ? "justify-end" : ""}`}>
+              <PageLink
+                href={buttonHref || "#"}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-(--page-primary) px-6 py-2 font-semibold text-(--page-on-primary) transition-opacity hover:opacity-90"
+                style={buttonStyle(styles?.button)}
+              >
+                <ButtonIconView icon={buttonIcon} />
+                <EditableText
+                  sectionId={section.id}
+                  elementKey="button"
+                  path={["buttonLabel"]}
+                  value={buttonLabel}
+                  maxLength={TEXT_LIMITS.buttonLabel}
+                  placeholder="Texto del botón"
+                />
+              </PageLink>
+              {/* Segundo botón, con borde. Solo si tiene texto. */}
+              {secondaryLabel && (
+                <PageLink
+                  href={secondaryHref || "#"}
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border-2 border-current px-6 py-2 font-semibold transition-opacity hover:opacity-80"
+                >
+                  <ButtonIconView icon={secondaryIcon} />
+                  <EditableText
+                    sectionId={section.id}
+                    elementKey="button"
+                    path={["secondaryLabel"]}
+                    value={secondaryLabel}
+                    maxLength={TEXT_LIMITS.buttonLabel}
+                    placeholder="Segundo botón"
+                  />
+                </PageLink>
+              )}
+            </div>
           </PageElement>
         </ShowWhenFilledOrEditing>
         {hasImage && (
@@ -148,7 +199,7 @@ export function HeroSection({ section }: Props<"hero">) {
             flow={flow}
             className={
               sideBySide
-                ? `w-full @3xl:row-span-3 @3xl:row-start-1 ${align === "right" ? "@3xl:col-start-1" : "@3xl:col-start-2"}`
+                ? `w-full @3xl:row-span-4 @3xl:row-start-1 ${align === "right" ? "@3xl:col-start-1" : "@3xl:col-start-2"}`
                 : "w-full"
             }
           >

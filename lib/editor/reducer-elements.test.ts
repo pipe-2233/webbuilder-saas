@@ -118,7 +118,7 @@ describe("setElementOrder", () => {
   it("cambia el orden y completa los elementos que falten", () => {
     const start = initial();
     const state = editorReducer(start, { type: "setElementOrder", id: heroId(start), order: ["button", "title"] });
-    expect(hero(state).layout?.order).toEqual(["button", "title", "subtitle", "image"]);
+    expect(hero(state).layout?.order).toEqual(["button", "title", "eyebrow", "subtitle", "image"]);
     expect(isValid(state)).toBe(true);
   });
 
@@ -129,7 +129,7 @@ describe("setElementOrder", () => {
       id: heroId(start),
       order: ["logo", "subtitle", "subtitle", "title"],
     });
-    expect(hero(state).layout?.order).toEqual(["subtitle", "title", "button", "image"]);
+    expect(hero(state).layout?.order).toEqual(["subtitle", "title", "eyebrow", "button", "image"]);
   });
 });
 

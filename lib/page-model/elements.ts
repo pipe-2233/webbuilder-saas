@@ -9,7 +9,7 @@ type SectionType = "header" | "hero" | "text" | "image" | "features" | "footer";
  */
 export const SECTION_ELEMENTS = {
   header: ["logo", "links"],
-  hero: ["title", "subtitle", "button", "image"],
+  hero: ["eyebrow", "title", "subtitle", "button", "image"],
   text: ["title", "body"],
   image: ["image", "caption"],
   features: ["title", "items", "itemTitle", "itemDescription"],
@@ -23,7 +23,7 @@ export const SECTION_ELEMENTS = {
  */
 export const LAYOUT_ELEMENTS = {
   header: ["logo", "links"],
-  hero: ["title", "subtitle", "button", "image"],
+  hero: ["eyebrow", "title", "subtitle", "button", "image"],
   text: ["title", "body"],
   image: ["image", "caption"],
   features: ["title", "items"],
@@ -45,6 +45,7 @@ export const ELEMENT_KEYS = [
   "itemDescription",
   "text",
   "items",
+  "eyebrow",
 ] as const satisfies readonly ElementKey[];
 
 /** Secciones cuyos elementos se pueden colocar libremente en escritorio (todas). */
@@ -77,6 +78,7 @@ export const ELEMENT_LABELS: Record<ElementKey, string> = {
   itemDescription: "Descripciones de los elementos",
   text: "Texto",
   items: "Tarjetas",
+  eyebrow: "Antetítulo",
 };
 
 /** Qué tipo de controles de estilo admite cada elemento. */
