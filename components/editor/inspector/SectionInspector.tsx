@@ -13,6 +13,7 @@ import { LIMITS, TEXT_LIMITS, type Alignment, type NavLink, type PageTheme, type
 
 import { ColorInput, LinkInput, PanelGroup, Segmented, TextInput } from "./fields";
 import { ElementInspector } from "./ElementInspector";
+import { ExtraSectionFields, FeatureIconSelect } from "./ExtraSectionFields";
 import { ImageInput } from "./ImageInput";
 import { LayoutPanel } from "./LayoutPanel";
 import { ListEditor } from "./ListEditor";
@@ -235,11 +236,16 @@ function SectionFields({ section, set }: { section: Section; set: (path: Path, v
         <>
           <PanelGroup title="Contenido">
             <TextInput
-              label="Nombre o logo"
+              label="Nombre"
               value={section.props.logoText}
               onChange={(v) => set(["logoText"], v)}
               maxLength={TEXT_LIMITS.logoText}
               required
+            />
+            <ImageInput
+              label="Logo (imagen, opcional)"
+              value={section.props.logoImage}
+              onChange={(v) => set(["logoImage"], v)}
             />
           </PanelGroup>
           <PanelGroup title="Menú">
@@ -401,6 +407,11 @@ function SectionFields({ section, set }: { section: Section; set: (path: Path, v
               onChange={(items) => set(["items"], items)}
               renderItem={(item, index) => (
                 <>
+                  <FeatureIconSelect
+                    id={`feature-icon-${item.id}`}
+                    value={item.icon}
+                    onChange={(v) => set(["items", index, "icon"], v)}
+                  />
                   <TextInput
                     label="Título"
                     value={item.title}
@@ -438,6 +449,8 @@ function SectionFields({ section, set }: { section: Section; set: (path: Path, v
           </PanelGroup>
         </>
       );
+    default:
+      return <ExtraSectionFields section={section} set={set} />;
   }
 }
 

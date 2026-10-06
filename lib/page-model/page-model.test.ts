@@ -153,12 +153,41 @@ describe("formas decorativas", () => {
 
   it.each([
     ["sin id", { id: "" }],
-    ["giro fuera de rango", { rotation: 1000 }],
-    ["capa fuera de rango", { zIndex: 999 }],
-    ["borde enorme", { borderWidth: 500 }],
     ["tipo desconocido", { type: "dragon" }],
   ])("rechaza una forma %s", (_name, patch) => {
     expect(withShapes([{ ...shape, ...patch }]).success).toBe(false);
+  });
+});
+
+describe("datos antiguos o de otra versión", () => {
+  it("una forma con valores fuera de rango se ajusta en vez de dañar la página", () => {
+    const doc = asJson(validDoc()) as { sections: { shapes?: unknown[] }[] };
+    doc.sections[1].shapes = [
+      { id: "s1", type: "circle", color: "#ff0000", opacity: 50, position: { x: 0, y: 0, w: 20 }, zIndex: -20, rotation: 1000, borderWidth: 500 },
+    ];
+    const result = parsePageDocument(doc);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.sections[1].shapes?.[0]).toMatchObject({ zIndex: -20, rotation: 360, borderWidth: 50 });
+    }
+  });
+
+  it("estilos y posiciones de elementos desconocidos se ignoran", () => {
+    const doc = asJson(validDoc()) as { sections: { styles?: unknown; layout?: unknown }[] };
+    doc.sections[1].styles = { titulo_viejo: { bold: true }, title: { bold: true } };
+    doc.sections[1].layout = { free: { height: 300, items: { elemento_futuro: { x: 0, y: 0, w: 10 }, title: { x: 0, y: 0, w: 50 } } } };
+    const result = parsePageDocument(doc);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.sections[1].styles).toEqual({ title: { bold: true } });
+      expect(Object.keys(result.data.sections[1].layout?.free?.items ?? {})).toEqual(["title"]);
+    }
+  });
+
+  it("un estilo conocido pero inválido sigue avisando", () => {
+    const doc = asJson(validDoc()) as { sections: { styles?: unknown }[] };
+    doc.sections[1].styles = { title: { color: "rojo" } };
+    expect(parsePageDocument(doc).success).toBe(false);
   });
 });
 

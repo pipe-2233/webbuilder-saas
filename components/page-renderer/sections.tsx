@@ -3,7 +3,8 @@ import { TEXT_LIMITS, type Alignment, type SectionOfType, type SectionType } fro
 import { ShowWhenFilledOrEditing } from "./edit-context";
 import { EditableText } from "./EditableText";
 import { buttonStyle, imageStyle, textStyle } from "./element-style";
-import { ButtonIconView } from "./icons";
+import { ButtonIconView, FeatureIconView } from "./icons";
+import { MobileMenu } from "./interactive";
 import { ElementsContainer, PageElement } from "./PageElement";
 import { PageLink } from "./PageLink";
 import { SectionShell } from "./SectionShell";
@@ -26,16 +27,21 @@ const FLEX_ALIGN: Record<Alignment, string> = {
 };
 
 export function HeaderSection({ section }: Props<"header">) {
-  const { logoText, links } = section.props;
+  const { logoText, logoImage, links } = section.props;
   const styles = section.styles;
   return (
     <SectionShell section={section} className="py-5">
       <nav>
         <ElementsContainer
           section={section}
-          className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3"
+          className="flex items-center justify-between gap-x-8 gap-y-3"
         >
           <PageElement section={section} elementKey="logo">
+            <span className="flex items-center gap-3">
+            {logoImage && (
+              // eslint-disable-next-line @next/next/no-img-element -- URLs arbitrarias del usuario.
+              <img src={logoImage} alt="" draggable={false} className="h-10 w-auto shrink-0 rounded-full object-contain" />
+            )}
             <EditableText
               sectionId={section.id}
               elementKey="logo"
@@ -47,10 +53,13 @@ export function HeaderSection({ section }: Props<"header">) {
               placeholder="Nombre del sitio"
               required
             />
+            </span>
           </PageElement>
           {links.length > 0 && (
           <PageElement section={section} elementKey="links">
-          <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium">
+          {/* En pantallas estrechas el menú se convierte en un botón ☰. */}
+          <MobileMenu links={links} />
+          <ul className="hidden flex-wrap gap-x-6 gap-y-2 text-sm font-medium @2xl:flex">
             {links.map((link, index) => (
               <li key={link.id}>
                 <PageLink href={link.href} className="hover:text-(--page-primary)">
@@ -338,7 +347,13 @@ export function FeaturesSection({ section }: Props<"features">) {
                 key={item.id}
                 className="flex flex-col gap-2 rounded-2xl border border-(--page-muted)/25 p-6"
               >
-                <span className="h-1.5 w-10 rounded-full bg-(--page-primary)" aria-hidden />
+                {item.icon === "none" ? (
+                  <span className="h-1.5 w-10 rounded-full bg-(--page-primary)" aria-hidden />
+                ) : (
+                  <span className="flex size-12 items-center justify-center rounded-xl bg-(--page-primary)/15 text-(--page-primary)">
+                    <FeatureIconView icon={item.icon} />
+                  </span>
+                )}
                 <EditableText
                   sectionId={section.id}
                   elementKey="itemTitle"

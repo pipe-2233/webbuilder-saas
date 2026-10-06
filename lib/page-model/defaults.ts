@@ -1,5 +1,9 @@
 import {
   PAGE_MODEL_VERSION,
+  type CardItem,
+  type SpecItem,
+  type StatItem,
+  type StepItem,
   type FeatureItem,
   type NavLink,
   type PageDocument,
@@ -31,6 +35,7 @@ export const DEFAULT_THEME: PageTheme = {
 const SECTION_FACTORIES: { [T in SectionType]: () => SectionOfType<T>["props"] } = {
   header: () => ({
     logoText: "Mi sitio",
+    logoImage: "",
     links: [
       { id: createId(), label: "Inicio", href: "#inicio" },
       { id: createId(), label: "Contacto", href: "#contacto" },
@@ -63,16 +68,94 @@ const SECTION_FACTORIES: { [T in SectionType]: () => SectionOfType<T>["props"] }
   features: () => ({
     title: "Lo que ofrecemos",
     items: [
-      { id: createId(), title: "Calidad", description: "Explica tu primera ventaja." },
-      { id: createId(), title: "Rapidez", description: "Explica tu segunda ventaja." },
-      { id: createId(), title: "Confianza", description: "Explica tu tercera ventaja." },
+      { id: createId(), icon: "star", title: "Calidad", description: "Explica tu primera ventaja." },
+      { id: createId(), icon: "zap", title: "Rapidez", description: "Explica tu segunda ventaja." },
+      { id: createId(), icon: "shield", title: "Confianza", description: "Explica tu tercera ventaja." },
     ],
   }),
   footer: () => ({
     text: `© ${new Date().getFullYear()} Mi sitio. Todos los derechos reservados.`,
     links: [],
   }),
+  stats: () => ({
+    items: [
+      { id: createId(), value: "90", suffix: "", label: "meses de financiación", detail: "" },
+      { id: createId(), value: "1.000", suffix: "m²", label: "lotes desde", detail: "" },
+      { id: createId(), value: "5", suffix: "min", label: "de la ciudad", detail: "" },
+    ],
+  }),
+  showcase: () => ({
+    eyebrow: "Proyecto destacado",
+    title: "Nombre del proyecto",
+    subtitle: "Cuenta en pocas líneas por qué este proyecto es especial y para quién es.",
+    imageUrl: "",
+    imageSide: "left",
+    specsTitle: "Detalles",
+    specs: [
+      { id: createId(), label: "Área", value: "1.000 a 1.770 m²" },
+      { id: createId(), label: "Precio", value: "Desde $150.000.000" },
+      { id: createId(), label: "Financiación", value: "Hasta 90 meses" },
+    ],
+    buttonLabel: "Pedir información",
+    buttonHref: "#contacto",
+    buttonIcon: "whatsapp",
+  }),
+  cards: () => ({
+    eyebrow: "Más opciones",
+    title: "Nuestros proyectos",
+    subtitle: "Escríbenos y te contamos cuáles siguen disponibles.",
+    items: [createCard("Proyecto uno"), createCard("Proyecto dos"), createCard("Proyecto tres")],
+    note: "",
+  }),
+  steps: () => ({
+    eyebrow: "Dónde estamos",
+    title: "Cerca de todo",
+    subtitle: "",
+    items: [
+      { id: createId(), title: "Centro", description: "Punto de partida", value: "0 min" },
+      { id: createId(), title: "Primer lugar", description: "Describe este punto", value: "5 min" },
+      { id: createId(), title: "Segundo lugar", description: "Describe este punto", value: "15 min" },
+    ],
+  }),
+  contact: () => ({
+    eyebrow: "Contáctanos",
+    title: "Te ayudamos a encontrar lo que buscas.",
+    subtitle: "Escríbenos y te respondemos lo antes posible.",
+    contactName: "",
+    phone: "",
+    countryCode: "57",
+    whatsappMessage: "Hola, quiero más información.",
+    buttonLabel: "Escribir por WhatsApp",
+    instagram: "",
+    email: "",
+  }),
 };
+
+/** Tarjeta nueva para la sección de tarjetas. */
+export function createCard(title = "Nueva tarjeta"): CardItem {
+  return {
+    id: createId(),
+    imageUrl: "",
+    tag: "Ubicación",
+    title,
+    description: "Describe este proyecto o producto.",
+    price: "Consulta precio",
+    chips: [],
+    href: "",
+  };
+}
+
+export function createStat(): StatItem {
+  return { id: createId(), value: "10", suffix: "", label: "Nueva cifra", detail: "" };
+}
+
+export function createSpec(): SpecItem {
+  return { id: createId(), label: "Dato", value: "Valor" };
+}
+
+export function createStep(): StepItem {
+  return { id: createId(), title: "Nuevo punto", description: "", value: "" };
+}
 
 /**
  * Copia de una sección con ids nuevos (la sección, sus enlaces, elementos y
@@ -84,6 +167,7 @@ export function duplicateSection<S extends Section>(section: S): S {
   const props = copy.props as { links?: { id: string }[]; items?: { id: string }[] };
   props.links?.forEach((link) => (link.id = createId()));
   props.items?.forEach((item) => (item.id = createId()));
+  (copy.props as { specs?: { id: string }[] }).specs?.forEach((spec) => (spec.id = createId()));
   copy.shapes?.forEach((shape) => (shape.id = createId()));
   return copy;
 }
@@ -95,7 +179,7 @@ export function createNavLink(): NavLink {
 
 /** Elemento nuevo para la sección de características. */
 export function createFeatureItem(): FeatureItem {
-  return { id: createId(), title: "Nueva característica", description: "Describe esta ventaja." };
+  return { id: createId(), icon: "check", title: "Nueva característica", description: "Describe esta ventaja." };
 }
 
 /** Crea una sección nueva con contenido de ejemplo. */

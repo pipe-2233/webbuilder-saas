@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { ENTRANCE_KEYS, HOVER_KEYS, LOOP_KEYS } from "./animations";
-import { BUTTON_ICON_KEYS } from "./icons";
+import { BUTTON_ICON_KEYS, FEATURE_ICON_KEYS } from "./icons";
 import { ELEMENT_KEYS, ELEMENT_WIDTH_KEYS, RADIUS_KEYS, TEXT_SIZE_KEYS } from "./elements";
 
 /**
@@ -21,6 +21,11 @@ export const LIMITS = {
   sections: 50,
   links: 8,
   featureItems: 12,
+  stats: 6,
+  specs: 10,
+  cards: 18,
+  steps: 12,
+  chips: 6,
 } as const;
 
 /** Longitud máxima de cada texto. El editor usa los mismos límites. */
@@ -40,6 +45,14 @@ export const TEXT_LIMITS = {
   featureTitle: 80,
   featureDescription: 300,
   footerText: 200,
+  statValue: 20,
+  statLabel: 60,
+  specLabel: 40,
+  specValue: 80,
+  price: 60,
+  chip: 30,
+  phone: 30,
+  note: 300,
 } as const;
 
 export const ALIGNMENTS = ["left", "center", "right"] as const;
@@ -126,6 +139,31 @@ const navLinkSchema = z.object({
 
 const elementKey = z.enum(ELEMENT_KEYS);
 
+/**
+ * Objeto por elemento (estilos, posiciones) tolerante: las claves de elementos
+ * desconocidos (de una versión anterior o posterior del editor) se ignoran en
+ * lugar de invalidar toda la página.
+ */
+function byElement<T extends z.ZodType>(value: T) {
+  return z.record(z.string(), z.unknown()).transform((record, ctx) => {
+    const result: Partial<Record<(typeof ELEMENT_KEYS)[number], z.output<T>>> = {};
+    for (const [key, item] of Object.entries(record)) {
+      if (!(ELEMENT_KEYS as readonly string[]).includes(key)) continue;
+      const parsed = value.safeParse(item);
+      if (!parsed.success) {
+        for (const issue of parsed.error.issues) ctx.addIssue({ ...issue, path: [key, ...issue.path] });
+        continue;
+      }
+      result[key as (typeof ELEMENT_KEYS)[number]] = parsed.data;
+    }
+    return result;
+  });
+}
+
+/** Número que, si viene fuera de rango (datos antiguos), se ajusta en vez de fallar. */
+const clampedNumber = (min: number, max: number) =>
+  z.number().transform((value) => Math.min(Math.max(value, min), max));
+
 /** Personalización de un elemento (título, botón...). Todo es opcional. */
 export const elementStyleSchema = z.object({
   font: fontFamily.optional(),
@@ -169,7 +207,7 @@ export const sectionLayoutSchema = z.object({
     .object({
       /** Alto de la zona de contenido, en píxeles. */
       height: z.number().min(80).max(4000),
-      items: z.partialRecord(elementKey, freePositionSchema),
+      items: byElement(freePositionSchema),
     })
     .optional(),
 });
@@ -183,12 +221,12 @@ export const shapeSchema = z.object({
   opacity: z.number().min(0).max(100).default(50),
   radius: z.enum(RADIUS_KEYS).optional(), // Solo square
   position: freePositionSchema, // x, y, w, h
-  zIndex: z.number().int().min(-10).max(50).default(0),
-  rotation: z.number().min(-360).max(360).default(0).optional(),
-  borderWidth: z.number().min(0).max(50).default(0).optional(),
+  zIndex: clampedNumber(-100, 100).transform(Math.round).default(0),
+  rotation: clampedNumber(-360, 360).default(0).optional(),
+  borderWidth: clampedNumber(0, 50).default(0).optional(),
   borderColor: hexColor.optional(),
   customPath: z.string().max(2000).optional(),
-  blur: z.number().min(0).max(50).optional(),
+  blur: clampedNumber(0, 50).optional(),
   shadow: z.enum(["none", "sm", "md", "lg", "xl"]).optional(),
 });
 export type Shape = z.infer<typeof shapeSchema>;
@@ -208,7 +246,7 @@ const sectionBase = {
   /** Texto claro (blanco) en la sección, para fondos oscuros o con foto. */
   lightText: z.boolean().optional(),
   /** Estilo propio de cada elemento de la sección. */
-  styles: z.partialRecord(elementKey, elementStyleSchema).optional(),
+  styles: byElement(elementStyleSchema).optional(),
   layout: sectionLayoutSchema.optional(),
   /** Formas decorativas (máximo 30 por sección). */
   shapes: z.array(shapeSchema).max(LIMITS_SHAPES).optional(),
@@ -219,6 +257,8 @@ export const headerSectionSchema = z.object({
   type: z.literal("header"),
   props: z.object({
     logoText: requiredText(TEXT_LIMITS.logoText),
+    /** Logo como imagen (opcional); se muestra junto al nombre. */
+    logoImage: imageSrc.default(""),
     links: z.array(navLinkSchema).max(LIMITS.links),
   }),
 });
@@ -275,6 +315,7 @@ export const featuresSectionSchema = z.object({
       .array(
         z.object({
           id,
+          icon: z.enum(FEATURE_ICON_KEYS).default("none"),
           title: requiredText(TEXT_LIMITS.featureTitle),
           description: text(TEXT_LIMITS.featureDescription),
         }),
@@ -292,6 +333,118 @@ export const footerSectionSchema = z.object({
   }),
 });
 
+/** Cabecera común de las secciones nuevas: antetítulo, título y descripción. */
+const sectionIntro = {
+  eyebrow: text(TEXT_LIMITS.eyebrow),
+  title: text(TEXT_LIMITS.sectionTitle),
+  subtitle: text(TEXT_LIMITS.heroSubtitle),
+};
+
+/** Cifras destacadas con contador animado (90 meses, 1.000 m², 5 min...). */
+export const statsSectionSchema = z.object({
+  ...sectionBase,
+  type: z.literal("stats"),
+  props: z.object({
+    items: z
+      .array(
+        z.object({
+          id,
+          /** Número (con o sin separadores): "90", "1.000", "24/7". */
+          value: requiredText(TEXT_LIMITS.statValue),
+          /** Unidad pegada al número: "m²", "min", "%". */
+          suffix: text(TEXT_LIMITS.chip),
+          label: text(TEXT_LIMITS.statLabel),
+          detail: text(TEXT_LIMITS.statLabel),
+        }),
+      )
+      .max(LIMITS.stats),
+  }),
+});
+
+/** Proyecto o producto destacado: imagen + texto + ficha de datos + botón. */
+export const showcaseSectionSchema = z.object({
+  ...sectionBase,
+  type: z.literal("showcase"),
+  props: z.object({
+    ...sectionIntro,
+    imageUrl: imageSrc,
+    imageSide: z.enum(["left", "right"]),
+    specsTitle: text(TEXT_LIMITS.sectionTitle),
+    specs: z
+      .array(z.object({ id, label: requiredText(TEXT_LIMITS.specLabel), value: text(TEXT_LIMITS.specValue) }))
+      .max(LIMITS.specs),
+    buttonLabel: text(TEXT_LIMITS.buttonLabel),
+    buttonHref: optionalHref,
+    buttonIcon: z.enum(BUTTON_ICON_KEYS),
+  }),
+});
+
+/** Tarjetas de inmuebles o productos: foto, zona, título, precio y etiquetas. */
+export const cardsSectionSchema = z.object({
+  ...sectionBase,
+  type: z.literal("cards"),
+  props: z.object({
+    ...sectionIntro,
+    items: z
+      .array(
+        z.object({
+          id,
+          imageUrl: imageSrc,
+          /** Zona o categoría, sobre el título ("Chancos · Tuluá"). */
+          tag: text(TEXT_LIMITS.chip * 2),
+          title: requiredText(TEXT_LIMITS.featureTitle),
+          description: text(TEXT_LIMITS.featureDescription),
+          price: text(TEXT_LIMITS.price),
+          /** Etiquetas pequeñas ("1.000 m²", "Escrituras"). */
+          chips: z.array(text(TEXT_LIMITS.chip)).max(LIMITS.chips),
+          href: optionalHref,
+        }),
+      )
+      .max(LIMITS.cards),
+    /** Nota al final (p. ej. "Los precios pueden cambiar"). */
+    note: text(TEXT_LIMITS.note),
+  }),
+});
+
+/** Lista o recorrido: lugares con tiempos, pasos de un proceso... */
+export const stepsSectionSchema = z.object({
+  ...sectionBase,
+  type: z.literal("steps"),
+  props: z.object({
+    ...sectionIntro,
+    items: z
+      .array(
+        z.object({
+          id,
+          title: requiredText(TEXT_LIMITS.featureTitle),
+          description: text(TEXT_LIMITS.featureDescription),
+          /** Dato a la derecha ("5 min", "Paso 1"). */
+          value: text(TEXT_LIMITS.specValue),
+        }),
+      )
+      .max(LIMITS.steps),
+  }),
+});
+
+/** Contacto: WhatsApp, copiar número y redes. */
+export const contactSectionSchema = z.object({
+  ...sectionBase,
+  type: z.literal("contact"),
+  props: z.object({
+    ...sectionIntro,
+    /** Nombre de quien atiende ("Arles Castaño"). */
+    contactName: text(TEXT_LIMITS.logoText),
+    /** Teléfono tal como se muestra ("310 654 4931"). */
+    phone: text(TEXT_LIMITS.phone),
+    /** Prefijo del país para WhatsApp ("57"). */
+    countryCode: z.string().trim().regex(/^\d{0,4}$/, "Solo números (ej. 57)."),
+    whatsappMessage: text(TEXT_LIMITS.heroSubtitle),
+    buttonLabel: text(TEXT_LIMITS.buttonLabel),
+    instagram: text(TEXT_LIMITS.logoText),
+    email: z.union([z.literal(""), z.email("Correo no válido.")]),
+  }),
+});
+
 export const sectionSchema = z.discriminatedUnion("type", [
   headerSectionSchema,
   heroSectionSchema,
@@ -299,6 +452,11 @@ export const sectionSchema = z.discriminatedUnion("type", [
   imageSectionSchema,
   featuresSectionSchema,
   footerSectionSchema,
+  statsSectionSchema,
+  showcaseSectionSchema,
+  cardsSectionSchema,
+  stepsSectionSchema,
+  contactSectionSchema,
 ]);
 
 // ---------------------------------------------------------------------------
@@ -345,6 +503,10 @@ export type NavLink = z.infer<typeof navLinkSchema>;
 export type Alignment = (typeof ALIGNMENTS)[number];
 export type FeatureItem = SectionOfType<"features">["props"]["items"][number];
 export type ElementStyle = z.infer<typeof elementStyleSchema>;
+export type StatItem = SectionOfType<"stats">["props"]["items"][number];
+export type SpecItem = SectionOfType<"showcase">["props"]["specs"][number];
+export type CardItem = SectionOfType<"cards">["props"]["items"][number];
+export type StepItem = SectionOfType<"steps">["props"]["items"][number];
 export type FreePosition = z.infer<typeof freePositionSchema>;
 export type SectionLayout = z.infer<typeof sectionLayoutSchema>;
 export type FreeLayout = NonNullable<SectionLayout["free"]>;

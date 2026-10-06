@@ -1,6 +1,26 @@
-import { ArrowRight, CalendarDays, Mail, MapPin, Phone } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarDays,
+  CircleCheck,
+  Clock,
+  FileText,
+  Heart,
+  House,
+  KeyRound,
+  Leaf,
+  Mail,
+  Map as MapIcon,
+  MapPin,
+  Phone,
+  ShieldCheck,
+  Star,
+  Truck,
+  Users,
+  Wallet,
+  Zap,
+} from "lucide-react";
 
-import type { ButtonIcon } from "@/lib/page-model/icons";
+import type { ButtonIcon, FeatureIcon } from "@/lib/page-model/icons";
 
 /** Logo de WhatsApp (Simple Icons, dominio público CC0). Lucide no incluye logos de marcas. */
 function WhatsAppIcon({ className }: { className?: string }) {
@@ -24,5 +44,31 @@ const ICONS = {
 export function ButtonIconView({ icon, className = "size-5 shrink-0" }: { icon: ButtonIcon; className?: string }) {
   if (icon === "none") return null;
   const Icon = ICONS[icon];
+  return <Icon className={className} aria-hidden />;
+}
+
+const FEATURE_ICON_COMPONENTS = {
+  check: CircleCheck,
+  document: FileText,
+  wallet: Wallet,
+  zap: Zap,
+  home: House,
+  map: MapIcon,
+  location: MapPin,
+  shield: ShieldCheck,
+  star: Star,
+  heart: Heart,
+  clock: Clock,
+  leaf: Leaf,
+  key: KeyRound,
+  users: Users,
+  phone: Phone,
+  truck: Truck,
+} satisfies Record<Exclude<FeatureIcon, "none">, React.ComponentType<{ className?: string }>>;
+
+/** Icono de una característica o lista (o nada si es "none"). */
+export function FeatureIconView({ icon, className = "size-6" }: { icon: FeatureIcon; className?: string }) {
+  if (icon === "none") return null;
+  const Icon = FEATURE_ICON_COMPONENTS[icon];
   return <Icon className={className} aria-hidden />;
 }

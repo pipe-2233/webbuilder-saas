@@ -51,6 +51,8 @@ type BaseEditorAction =
   | { type: "select"; id: string | null }
   /** Copia una sección justo debajo de ella y selecciona la copia. */
   | { type: "duplicateSection"; id: string }
+  /** Sustituye toda la página (aplicar una plantilla). Se puede deshacer. */
+  | { type: "replaceDocument"; document: PageDocument }
   | { type: "addSection"; sectionType: SectionType }
   /** Inserta una sección nueva en `index` (arrastrar desde el menú de bloques). */
   | { type: "insertSection"; sectionType: SectionType; index: number }
@@ -224,6 +226,14 @@ function applyAction(state: EditorState, action: BaseEditorAction): EditorState 
         }
         return changed ? next : section;
       });
+
+    case "replaceDocument":
+      return {
+        ...changed(state, action.document, null),
+        selectedElement: null,
+        selectedElements: [],
+        selectedShapeId: null,
+      };
 
     case "duplicateSection": {
       const index = sections.findIndex((s) => s.id === action.id);

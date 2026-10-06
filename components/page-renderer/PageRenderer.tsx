@@ -4,6 +4,7 @@ import { readableTextColor } from "@/lib/page-model/color";
 import type { PageDocument, Section } from "@/lib/page-model/schema";
 
 import { fontFamilyValue, pageFontVariables } from "./fonts";
+import { CardsSection, ContactSection, ShowcaseSection, StatsSection, StepsSection } from "./sections-extra";
 import {
   FeaturesSection,
   FooterSection,
@@ -68,5 +69,15 @@ function RenderSection({ section }: { section: Section }) {
       return <FeaturesSection section={section} />;
     case "footer":
       return <FooterSection section={section} />;
+    case "stats":
+      return <StatsSection section={section} />;
+    case "showcase":
+      return <ShowcaseSection section={section} />;
+    case "cards":
+      return <CardsSection section={section} />;
+    case "steps":
+      return <StepsSection section={section} />;
+    case "contact":
+      return <ContactSection section={section} />;
   }
 }

@@ -30,6 +30,7 @@ import type { PageDocument, Section } from "@/lib/page-model/schema";
 import { SECTION_INFO } from "@/lib/page-model/section-info";
 
 import { BlockPalette } from "./BlockPalette";
+import { TemplatePicker } from "./TemplatePicker";
 import { Canvas, type Device } from "./Canvas";
 import { EditorContext } from "./editor-context";
 import { SectionInspector } from "./inspector/SectionInspector";
@@ -332,6 +333,7 @@ export function Editor({ projectId, userId, projectName, initialDocument }: Edit
               >
                 {tab === "sections" && (
                   <>
+                    <TemplatePicker siteName={projectName} dispatch={dispatch} />
                     <div ref={listAreaRef} className="flex flex-col gap-2">
                       <SectionList
                         sections={document.sections}

@@ -1,6 +1,17 @@
 // schema.ts importa este archivo, así que aquí no se importa nada de él
 // (evita dependencias circulares). Debe coincidir con los tipos de sección.
-type SectionType = "header" | "hero" | "text" | "image" | "features" | "footer";
+type SectionType =
+  | "header"
+  | "hero"
+  | "text"
+  | "image"
+  | "features"
+  | "footer"
+  | "stats"
+  | "showcase"
+  | "cards"
+  | "steps"
+  | "contact";
 
 /**
  * Elementos de cada sección que se pueden seleccionar y personalizar
@@ -14,6 +25,11 @@ export const SECTION_ELEMENTS = {
   image: ["image", "caption"],
   features: ["title", "items", "itemTitle", "itemDescription"],
   footer: ["text", "links"],
+  stats: ["items"],
+  showcase: ["eyebrow", "title", "subtitle", "items", "button", "image"],
+  cards: ["eyebrow", "title", "subtitle", "items"],
+  steps: ["eyebrow", "title", "subtitle", "items"],
+  contact: ["eyebrow", "title", "subtitle", "button"],
 } as const satisfies Record<SectionType, readonly string[]>;
 
 /**
@@ -28,6 +44,11 @@ export const LAYOUT_ELEMENTS = {
   image: ["image", "caption"],
   features: ["title", "items"],
   footer: ["text", "links"],
+  stats: ["items"],
+  showcase: ["eyebrow", "title", "subtitle", "items", "button", "image"],
+  cards: ["eyebrow", "title", "subtitle", "items"],
+  steps: ["eyebrow", "title", "subtitle", "items"],
+  contact: ["eyebrow", "title", "subtitle", "button"],
 } as const satisfies { [T in SectionType]: readonly (typeof SECTION_ELEMENTS)[T][number][] };
 
 export type ElementKey = (typeof SECTION_ELEMENTS)[SectionType][number];
@@ -49,7 +70,19 @@ export const ELEMENT_KEYS = [
 ] as const satisfies readonly ElementKey[];
 
 /** Secciones cuyos elementos se pueden colocar libremente en escritorio (todas). */
-export const FREE_LAYOUT_SECTIONS: readonly SectionType[] = ["header", "hero", "text", "image", "features", "footer"];
+export const FREE_LAYOUT_SECTIONS: readonly SectionType[] = [
+  "header",
+  "hero",
+  "text",
+  "image",
+  "features",
+  "footer",
+  "stats",
+  "showcase",
+  "cards",
+  "steps",
+  "contact",
+];
 
 export function supportsFreeLayout(type: SectionType): boolean {
   return FREE_LAYOUT_SECTIONS.includes(type);
